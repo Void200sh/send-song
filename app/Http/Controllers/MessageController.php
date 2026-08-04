@@ -1,0 +1,121 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Message;
+use Illuminate\Http\Request;
+
+class MessageController extends Controller
+{
+    /**
+     * ─── METHOD INDEX — TAMPILIN HALAMAN BROWSE ───
+     * Dipanggil pas user buka GET /messages
+     * Bisa nerima query parameter: ?search=... &kelas=...
+     */
+    public function index(Request $request)
+    {
+        // Mulai query builder dari model Message
+        // Nanti query ini bakal ngambil data dari tabel messages
+        $query = Message::query();
+
+        // ─── DAFTAR KELAS ───
+        // Hardcode 24 kelas (X, XI, XII × 4 jurusan × 2 rombel)
+        // Dipake buat dropdown filter di halaman browse
+        $kelasList = [
+            'X PPLG 1', 'X PPLG 2',
+            'X AKL 1', 'X AKL 2',
+            'X PM 1', 'X PM 2',
+            'X MPLB 1', 'X MPLB 2',
+            'XI PPLG 1', 'XI PPLG 2',
+            'XI AKL 1', 'XI AKL 2',
+            'XI PM 1', 'XI PM 2',
+            'XI MPLB 1', 'XI MPLB 2',
+            'XII PPLG 1', 'XII PPLG 2',
+            'XII AKL 1', 'XII AKL 2',
+            'XII PM 1', 'XII PM 2',
+            'XII MPLB 1', 'XII MPLB 2',
+        ];
+
+        // ─── FILTER PENCARIAN BERDASARKAN NAMA ───
+        // Kalo ada parameter ?search=xxx di URL, filter pesan yang recipient_name-nya mengandung kata xxx
+        // Pake LIKE %...% biar partial match (misal "Rina" ketemu "Rinaldi", "Sarina", dll)
+        if ($request->filled('search')) {
+            $query->where('recipient_name', 'like', '%' . $request->search . '%');
+        }
+
+        // ─── FILTER BERDASARKAN KELAS ───
+        // Kalo ada parameter ?kelas=xxx di URL, filter pesan yang kelas-nya sama persis
+        if ($request->filled('kelas')) {
+            $query->where('kelas', $request->kelas);
+        }
+
+        // ─── EKSEKUSI QUERY ───
+        // latest() = urutkan dari yang terbaru (created_at DESC)
+        // paginate(10) = ambil 10 pesan per halaman, sisanya dipaginasi
+        $messages = $query->latest()->paginate(10);
+
+        // Simpan nilai filter buat dikirim ke view (biar inputnya gak hilang pas dirender)
+        $selectedKelas = $request->kelas;
+        $search = $request->search;
+
+        // Render view messages/index.blade.php dengan 4 data
+        return view('messages.index', compact('messages', 'kelasList', 'selectedKelas', 'search'));
+    }
+
+    /**
+     * ─── METHOD STORE — SIMPAN PESAN BARU ───
+     * Dipanggil pas user submit form (POST /messages)
+     */
+    public function store(Request $request)
+    {
+        // ─── VALIDASI ───
+        // Pastikan data yang dikirim sesuai aturan:
+        // - recipient_name: wajib, harus string, maksimal 255 karakter
+        // - kelas: wajib, harus string, maksimal 50 karakter
+        // - message: wajib, harus string
+        // - spotify_url: opsional (nullable), harus string, maksimal 500 karakter
+        // Kalo validasi gagal, Laravel otomatis balikin user ke halaman sebelumnya + error messages
+        $validated = $request->validate([
+            'recipient_name' => 'required|string|max:255',
+            'kelas' => 'required|string|max:50',
+            'message' => 'required|string',
+            'spotify_url' => 'nullable|string|max:500',
+        ]);
+
+        // ─── EKSTRAK SPOTIFY TRACK ID ───
+        // Kalo user ngisi kolom spotify_url, ambil track ID-nya pake regex
+        if ($request->filled('spotify_url')) {
+            $trackId = $this->extractSpotifyTrackId($request->spotify_url);
+            // Simpan ID hasil ekstraksi ke array validated (pake nama kolom DB: spotify_track_id)
+            $validated['spotify_track_id'] = $trackId;
+        }
+
+        // Hapus spotify_url dari array validated — soalnya kolom di DB namanya spotify_track_id
+        // Kalo gak dihapus, Laravel bakal nyoba nyimpen kolom spotify_url yang gak ada di tabel → error
+        unset($validated['spotify_url']);
+
+        // ─── SIMPAN KE DATABASE ───
+        // Pake metode create() — isinya sesuai $fillable di model Message
+        Message::create($validated);
+
+        // ─── REDIRECT ───
+        // Arahkan user ke halaman browse, filter sesuai kelas yang dipilih
+        // Kirim flash message 'success' biar tampil notifikasi hijau
+        return redirect()->route('messages.index', ['kelas' => $validated['kelas']])
+            ->with('success', 'Pesan berhasil dikirim!');
+    }
+
+    /**
+     * ─── METHOD EKSTRAK SPOTIFY TRACK ID ───
+     * Ngambil ID unik track Spotify dari URL yang dikasih user
+     * Contoh: "https://open.spotify.com/track/4PTG3Z6ehG3jhSMvqY4QFY" → "4PTG3Z6ehG3jhSMvqY4QFY"
+     */
+    private function extractSpotifyTrackId(string $url): ?string
+    {
+        // Regex: nyari pattern "spotify.com/track/" terus diikuti karakter alfanumerik
+        // ([a-zA-Z0-9]+) = capture group — nangkep ID track-nya
+        preg_match('/spotify\.com\/track\/([a-zA-Z0-9]+)/', $url, $matches);
+        // Kalo cocok, return $matches[1] (ID). Kalo gak cocok, return null
+        return $matches[1] ?? null;
+    }
+}
