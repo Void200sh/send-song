@@ -70,17 +70,26 @@ class MessageController extends Controller
     {
         // ─── VALIDASI ───
         // Pastikan data yang dikirim sesuai aturan:
+        // - sender_name: opsional (nullable), harus string, maksimal 255 karakter
         // - recipient_name: wajib, harus string, maksimal 255 karakter
         // - kelas: wajib, harus string, maksimal 50 karakter
         // - message: wajib, harus string
         // - spotify_url: opsional (nullable), harus string, maksimal 500 karakter
         // Kalo validasi gagal, Laravel otomatis balikin user ke halaman sebelumnya + error messages
         $validated = $request->validate([
+            'sender_name' => 'nullable|string|max:255',
             'recipient_name' => 'required|string|max:255',
             'kelas' => 'required|string|max:50',
             'message' => 'required|string',
             'spotify_url' => 'nullable|string|max:500',
         ]);
+
+        // ─── NORMALISASI NAMA PENGIRIM ───
+        // Kalo kolom sender_name diisi cuma spasi/whitespace, anggap aja anonim (NULL)
+        // Biar di admin gak nampil "   " yang jelek
+        if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
+            $validated['sender_name'] = null;
+        }
 
         // ─── EKSTRAK SPOTIFY TRACK ID ───
         // Kalo user ngisi kolom spotify_url, ambil track ID-nya pake regex

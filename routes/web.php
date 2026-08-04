@@ -1,13 +1,12 @@
 <?php
 
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\ProfileController;
 use App\Models\Message;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MessageController;
 
 // ─── RUTE HALAMAN UTAMA (LANDING PAGE) ───
-// Method: GET
-// URL: /
-// Pake closure (function anonim) langsung di sini, bukan controller terpisah
 Route::get('/', function () {
     // Hitung TOTAL semua pesan di database — buat ditampilkan di stats card "stories told"
     $totalMessages = Message::count();
@@ -29,14 +28,27 @@ Route::get('/', function () {
 });
 
 // ─── RUTE HALAMAN BROWSE / FEED PESAN ───
-// Method: GET
-// URL: /messages
-// Bisa pake query parameter: ?search=... &kelas=...
-// Panggil method index() di MessageController
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
 // ─── RUTE KIRIM PESAN BARU ───
-// Method: POST
-// URL: /messages
-// Data dari form dikirim ke sini, lalu panggil method store() di MessageController
 Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+
+// ─── RUTE DASHBOARD BAWAAN BREEZE ───
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// ─── RUTE ADMIN (MERIDIAN / STISLA TEMPLATE) ───
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
+    Route::delete('/messages/{message}', [AdminController::class, 'destroy'])->name('messages.destroy');
+});
+
+require __DIR__.'/auth.php';

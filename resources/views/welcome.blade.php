@@ -153,6 +153,13 @@
                 {{-- @csrf = token keamanan Laravel, WAJIB di setiap form POST biar gak kena CSRF attack --}}
                 @csrf
 
+                {{-- Input Nama Pengirim (opsional — kalo dikosongin = anonim) --}}
+                <div>
+                    <label for="sender_name" class="block text-sm font-medium text-gray-700 mb-1.5">from <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="sender_name" id="sender_name" placeholder="your name — or stay anonymous"
+                        class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors">
+                </div>
+
                 {{-- Input Nama Penerima --}}
                 <div>
                     <label for="recipient_name" class="block text-sm font-medium text-gray-700 mb-1.5">to</label>

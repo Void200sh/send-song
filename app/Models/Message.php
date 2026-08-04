@@ -15,6 +15,7 @@ class Message extends Model
     // Daftar kolom yang BOLEH diisi lewat metode create() atau fill()
     // Kalo kolom gak ada di sini, bakal ditolak (mass assignment protection)
     protected $fillable = [
+        'sender_name',      // string/null — nama pengirim (opsional, anonim kalo kosong)
         'recipient_name',   // string — nama penerima pesan
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
         'message',          // text — isi pesan
