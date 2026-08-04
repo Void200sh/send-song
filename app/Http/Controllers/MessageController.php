@@ -63,6 +63,16 @@ class MessageController extends Controller
     }
 
     /**
+     * ─── METHOD SHOW — TAMPILIN HALAMAN DETAIL SATU PESAN ───
+     * Dipanggil pas user buka GET /messages/{id}
+     * Route model binding otomatis nyari Message sesuai id, 404 kalo gak ada
+     */
+    public function show(Message $message)
+    {
+        return view('messages.show', compact('message'));
+    }
+
+    /**
      * ─── METHOD STORE — SIMPAN PESAN BARU ───
      * Dipanggil pas user submit form (POST /messages)
      */
@@ -73,18 +83,24 @@ class MessageController extends Controller
         // - recipient_name: wajib, harus string, maksimal 255 karakter
         // - kelas: wajib, harus string, maksimal 50 karakter
         // - message: wajib, harus string
-        // - spotify_url: opsional (nullable), harus string, maksimal 500 karakter
+        // - spotify_track_id / song_title / song_artist / cover_url / youtube_video_id: opsional (nullable)
         // Kalo validasi gagal, Laravel otomatis balikin user ke halaman sebelumnya + error messages
         $validated = $request->validate([
             'recipient_name' => 'required|string|max:255',
             'kelas' => 'required|string|max:50',
             'message' => 'required|string',
+            'spotify_track_id' => 'nullable|string|max:50',
+            'song_title' => 'nullable|string|max:255',
+            'song_artist' => 'nullable|string|max:255',
+            'cover_url' => 'nullable|string|max:1000',
+            'youtube_video_id' => 'nullable|string|max:50',
             'spotify_url' => 'nullable|string|max:500',
         ]);
 
-        // ─── EKSTRAK SPOTIFY TRACK ID ───
-        // Kalo user ngisi kolom spotify_url, ambil track ID-nya pake regex
-        if ($request->filled('spotify_url')) {
+        // ─── EKSTRAK SPOTIFY TRACK ID (fallback link lama) ───
+        // Kalo user paste link spotify_url langsung (tanpa pakai pencarian lagu),
+        // ambil track ID-nya pake regex sebagai fallback
+        if ($request->filled('spotify_url') && ! $request->filled('spotify_track_id')) {
             $trackId = $this->extractSpotifyTrackId($request->spotify_url);
             // Simpan ID hasil ekstraksi ke array validated (pake nama kolom DB: spotify_track_id)
             $validated['spotify_track_id'] = $trackId;

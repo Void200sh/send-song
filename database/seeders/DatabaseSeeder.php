@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         'Jangan pernah berubah ya, kamu sempurna apa adanya.',
         'Inget terus masa-masa kita di sekolah ini.',
         'Canda tawa kita bakal jadi kenangan terindah.',
-        'Aku bangga jadi temen kamu.',bro kalau semsal 
+        'Aku bangga jadi temen kamu.',
         'Suatu hari nanti kita pasti kangen masa-masa ini.',
         'Makasih udah selalu ada buat aku.',
         'Kamu itu spesial, jangan pernah ragu sama dirimu sendiri.',

@@ -3,6 +3,7 @@
 use App\Models\Message;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\SongController;
 
 // ─── RUTE HALAMAN UTAMA (LANDING PAGE) ───
 // Method: GET
@@ -35,8 +36,20 @@ Route::get('/', function () {
 // Panggil method index() di MessageController
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
+// ─── RUTE HALAMAN DETAIL PESAN ───
+// Method: GET
+// URL: /messages/{id} — contoh: /messages/12
+// Panggil method show() di MessageController
+Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
+
 // ─── RUTE KIRIM PESAN BARU ───
 // Method: POST
 // URL: /messages
 // Data dari form dikirim ke sini, lalu panggil method store() di MessageController
 Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+
+// ─── API INTERNAL: PENCARIAN & RESOLVE LAGU ───
+Route::prefix('api')->group(function () {
+    Route::get('/songs/search', [SongController::class, 'search'])->name('api.songs.search');
+    Route::post('/songs/resolve', [SongController::class, 'resolve'])->name('api.songs.resolve');
+});

@@ -19,6 +19,10 @@ class Message extends Model
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
         'message',          // text — isi pesan
         'spotify_track_id', // string/null — ID track Spotify hasil ekstraksi
+        'song_title',       // string/null — judul lagu dari Spotify
+        'song_artist',      // string/null — nama penyanyi
+        'cover_url',        // string/null — gambar album (cover art)
+        'youtube_video_id', // string/null — ID video YouTube hasil resolve
     ];
     // ─── KOLOM LAIN YANG GAK PERLU DIISI LANGSUNG ───
     // id → auto increment (primary key)

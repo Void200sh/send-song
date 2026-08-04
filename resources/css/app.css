@@ -16,7 +16,7 @@
     /* Font sans-serif utama: Plus Jakarta Sans (dari Google Fonts) */
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    /* Font dekoratif: Reenie Beanie — dipake buat judul "SendTheSong" dan nama penerima */
+    /* Font dekoratif: Reenie Beanie — dipake buat judul "SkanidaSong" dan nama penerima */
     --font-reenie: 'Reenie Beanie', cursive;
     /* Animasi marquee — teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
     --animate-marquee: marquee 30s linear infinite;
