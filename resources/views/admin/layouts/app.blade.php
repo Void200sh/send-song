@@ -21,13 +21,49 @@
         })();
     </script>
 
-    {{-- Font Inter — dipake sama --font-sans di @stisla/style theme --}}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {{-- Font — sama kayak landing page: Plus Jakarta Sans (utama) + Reenie Beanie (dekoratif) --}}
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
 
     {{-- CSS template Meridian / Stisla — sudah dicompile di public/assets --}}
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+
+    {{-- Override font bawaan template (Inter) pake font brand --}}
+    <style>
+        :root {
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+                'Noto Sans', 'Liberation Sans', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+                'Segoe UI Symbol', 'Noto Color Emoji';
+        }
+
+        .font-reenie {
+            font-family: 'Reenie Beanie', cursive;
+        }
+
+        .page__title.font-reenie {
+            font-size: 36px;
+            font-weight: 400;
+        }
+
+        /* Hanya HEADER yang pakai font latin — sisanya font biasa (Plus Jakarta Sans) */
+        .card__title {
+            font-family: 'Reenie Beanie', cursive;
+            font-weight: 400;
+            font-size: 24px;
+        }
+
+        .stat__value {
+            font-family: 'Reenie Beanie', cursive;
+            font-weight: 400;
+            font-size: 44px;
+        }
+
+        /* Light mode: teks font latin dibuat hitam pekat biar jelas terbaca */
+        [data-theme="light"] .card__title,
+        [data-theme="light"] .stat__value {
+            color: #171717;
+        }
+    </style>
 
     @stack('styles')
 </head>
@@ -45,7 +81,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467 1.803 1.803 0 01.99 3.467 2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467m9.894-1.1l-6.87-2.867a1.5 1.5 0 01-.927-1.41V7.24a1.5 1.5 0 011.5-1.5h.75a1.5 1.5 0 011.5 1.5v.691l6.87 2.867a.75.75 0 01.427.902l-.75 2.201z" />
                     </svg>
-                    <span>Skanida Songs</span>
+                    <span class="font-reenie text-[24px] leading-[100%]">Skanida Songs</span>
                 </a>
             </div>
 
@@ -116,8 +152,8 @@
                 </button>
 
                 <a href="{{ route('admin.dashboard') }}" class="navbar__brand">
-                    <span class="font-semibold">SendTheSong</span>
-                    <span class="text-muted-foreground text-sm">Admin</span>
+                    <span class="font-reenie text-[22px] leading-[100%]">Skanida Songs</span>
+               
                 </a>
 
                 <div class="navbar__menu">

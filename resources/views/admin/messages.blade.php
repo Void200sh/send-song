@@ -8,7 +8,7 @@
     <section class="page">
         <div class="page__header">
             <div class="page__headline">
-                <h1 class="page__title">Pesan Masuk</h1>
+                <h1 class="page__title font-reenie">Pesan Masuk</h1>
                 <p class="page__description">Semua pesan yang dikirim — lengkap dengan siapa pengirimnya.</p>
             </div>
             <div class="page__action">
@@ -93,25 +93,9 @@
                                     <tr>
                                         <td>
                                             @if ($msg->sender_name)
-                                                <span class="badge badge--success">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width=".9em" height=".9em"
-                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                                                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                        <circle cx="12" cy="8" r="4" />
-                                                        <path d="M5 20c1.5-3 4-4.5 7-4.5s5.5 1.5 7 4.5" />
-                                                    </svg>
-                                                    {{ $msg->sender_name }}
-                                                </span>
+                                                <span class="font-medium">{{ $msg->sender_name }}</span>
                                             @else
-                                                <span class="badge badge--soft">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width=".9em" height=".9em"
-                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                                                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                        <rect x="4" y="10" width="16" height="10" rx="2" />
-                                                        <path d="M8 10V7a4 4 0 118 0v3" />
-                                                    </svg>
-                                                    Anonim
-                                                </span>
+                                                <span class="text-muted-foreground">Anonim</span>
                                             @endif
                                         </td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
@@ -120,14 +104,7 @@
                                         <td>
                                             @if ($msg->spotify_track_id)
                                                 <a href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}" target="_blank"
-                                                    class="badge badge--info">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width=".9em" height=".9em"
-                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                                                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                        <path d="M9 18V5l12-2v13" />
-                                                        <circle cx="6" cy="18" r="3" />
-                                                        <circle cx="18" cy="16" r="3" />
-                                                    </svg>
+                                                    class="font-medium text-[#1DB954] hover:underline">
                                                     Spotify
                                                 </a>
                                             @else

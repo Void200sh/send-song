@@ -8,7 +8,7 @@
     <section class="page">
         <div class="page__header">
             <div class="page__headline">
-                <h1 class="page__title">
+                <h1 class="page__title font-reenie">
                     Halo, <span>{{ auth()->user()->name }}</span> 👋
                 </h1>
                 <p class="page__description">Ringkasan pesan yang masuk ke SendTheSong SMK.</p>
@@ -33,7 +33,7 @@
                     <div class="card__body">
                         <div class="stat">
                             <p class="stat__label text-eyebrow">Total Pesan</p>
-                            <p class="stat__value">{{ number_format($totalMessages) }}</p>
+                            <p class="stat__value font-reenie">{{ number_format($totalMessages) }}</p>
                             <p class="stat__meta text-muted-foreground text-sm">sepanjang waktu</p>
                         </div>
                     </div>
@@ -46,7 +46,7 @@
                     <div class="card__body">
                         <div class="stat">
                             <p class="stat__label text-eyebrow">Pesan Hari Ini</p>
-                            <p class="stat__value">{{ number_format($todayMessages) }}</p>
+                            <p class="stat__value font-reenie">{{ number_format($todayMessages) }}</p>
                             <p class="stat__meta text-muted-foreground text-sm">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
                         </div>
                     </div>
@@ -59,7 +59,7 @@
                     <div class="card__body">
                         <div class="stat">
                             <p class="stat__label text-eyebrow">Pengirim Beridentitas</p>
-                            <p class="stat__value">{{ number_format($totalSenders) }}</p>
+                            <p class="stat__value font-reenie">{{ number_format($totalSenders) }}</p>
                             <p class="stat__meta text-muted-foreground text-sm">dari yang kirim nama</p>
                         </div>
                     </div>
@@ -72,7 +72,7 @@
                     <div class="card__body">
                         <div class="stat">
                             <p class="stat__label text-eyebrow">Kelas Terjangkau</p>
-                            <p class="stat__value">{{ number_format($totalKelas) }}</p>
+                            <p class="stat__value font-reenie">{{ number_format($totalKelas) }}</p>
                             <p class="stat__meta text-muted-foreground text-sm">kelas unik</p>
                         </div>
                     </div>
