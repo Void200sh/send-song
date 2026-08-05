@@ -137,6 +137,19 @@
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </span>
                         </div>
+
+                        {{-- Logout --}}
+                        <form method="POST" action="{{ route('logout') }}" class="ms-2">
+                            @csrf
+                            <button type="submit" class="navbar__button" title="Keluar" aria-label="Keluar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M15 12H3m0 0l4-4m-4 4l4 4" />
+                                    <path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" />
+                                </svg>
+                            </button>
+                        </form>
                     </nav>
                 </div>
             </header>

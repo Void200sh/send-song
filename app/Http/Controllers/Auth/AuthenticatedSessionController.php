@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Message;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        // Statistik publik buat panel brand di kiri halaman login (sama kayak di landing page)
+        $totalMessages = Message::count();
+        $totalKelas = Message::distinct('kelas')->count('kelas');
+
+        return view('auth.login', compact('totalMessages', 'totalKelas'));
     }
 
     /**
