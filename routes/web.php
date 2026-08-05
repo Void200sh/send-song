@@ -31,6 +31,11 @@ Route::get('/', function () {
 // ─── RUTE HALAMAN BROWSE / FEED PESAN ───
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
+// ─── RUTE HALAMAN KIRIM STORY (TERPISAH DARI INDEX) ───
+Route::get('/story', function () {
+    return view('story');
+})->name('story.create');
+
 // ─── RUTE HALAMAN DETAIL PESAN ───
 // Method: GET
 // URL: /messages/{id} — contoh: /messages/12

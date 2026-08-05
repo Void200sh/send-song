@@ -21,7 +21,7 @@
             <nav class="flex items-center gap-4 sm:gap-6">
                 <a href="{{ route('messages.index') }}"
                     class="text-sm font-semibold text-white bg-[#171717] px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">browse</a>
-                <a href="{{ url('/') }}"
+                <a href="{{ route('story.create') }}"
                     class="text-sm text-gray-500 hover:text-gray-950 transition-colors">tell your story</a>
             </nav>
         </div>
@@ -54,16 +54,24 @@
                             placeholder="search by name..."
                             class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors">
                     </div>
-                    {{-- Dropdown filter kelas — ngambil opsi dari $kelasList yang dikirim controller --}}
+                    {{-- Dropdown filter kelas (custom, tanpa arrow browser) — ngambil opsi dari $kelasList --}}
                     <div class="w-full sm:w-fit">
-                        <select name="kelas" id="kelas"
-                            class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors appearance-none cursor-pointer bg-white">
-                            <option value="">all classes</option>
-                            @foreach ($kelasList as $k)
-                                {{-- Pake ternary: kalo $selectedKelas sama dengan opsi, tambahin 'selected' --}}
-                                <option value="{{ $k }}" {{ $selectedKelas == $k ? 'selected' : '' }}>{{ $k }}</option>
-                            @endforeach
-                        </select>
+                        <input type="hidden" name="kelas" id="kelas" value="{{ $selectedKelas }}">
+                        <div id="kelas-dd" class="relative">
+                            <button type="button" id="kelas-btn"
+                                class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-left @if($selectedKelas) text-gray-950 @else text-gray-400 @endif hover:border-gray-950 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors cursor-pointer bg-white whitespace-nowrap">
+                                {{ $selectedKelas ?: 'all classes' }}
+                            </button>
+                            <ul id="kelas-list"
+                                class="hidden absolute z-20 mt-1 w-full min-w-[180px] max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                                <li data-value=""
+                                    class="px-4 py-2.5 text-gray-950 hover:bg-gray-100 cursor-pointer list-none text-sm whitespace-nowrap">all classes</li>
+                                @foreach ($kelasList as $k)
+                                    <li data-value="{{ $k }}"
+                                        class="px-4 py-2.5 text-gray-950 hover:bg-gray-100 cursor-pointer list-none text-sm whitespace-nowrap">{{ $k }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
                     </div>
                     {{-- Tombol search + reset --}}
                     <div class="flex gap-2">
@@ -92,19 +100,20 @@
             {{-- Grid responsive: 1 kolom (HP), 2 kolom (tablet), 3 kolom (desktop) --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
                 @foreach ($messages as $msg)
-                    {{-- ─── SATU CARD PESAN — diklik → halaman detail (kecuali elemen interaktif) ─── --}}
-                    <div data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
-                        class="border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm bg-white cursor-pointer">
-                        {{-- Nama penerima (font Reenie Beanie besar) --}}
+                    {{-- ─── SATU CARD PESAN — semuanya link ke halaman detail (kecuali elemen interaktif) ─── --}}
+                    <a href="{{ route('messages.show', $msg) }}" data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
+                        class="block border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm bg-white cursor-pointer">
+                        {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
-                            <h2 class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {{ $msg->recipient_name }}</h2>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {{ $msg->sender_name ?: 'anonim' }}</p>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {{ $msg->recipient_name }}</p>
                         </div>
                         {{-- Kelas + waktu (relatif, ex: "XI PPLG 1 • 2 hours ago") --}}
                         <div class="text-xs text-gray-500 mb-3">
                             {{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}
                         </div>
-                        {{-- Isi pesan --}}
-                        <p class="text-sm text-gray-600 leading-relaxed mb-4">{{ $msg->message }}</p>
+                        {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
+                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{{ $msg->message }}</p>
                         {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
                         @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
@@ -134,21 +143,21 @@
                                     </div>
                                     <span data-duration class="text-[11px] text-gray-500 w-8 text-right">0:00</span>
                                 </div>
-                                {{-- Fallback kalo video YouTube error/dihapus --}}
-                                <a data-fallback href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
-                                    target="_blank" class="hidden mt-2 text-xs text-green-600 hover:underline">
+                                {{-- Fallback kalo video YouTube error/dihapus — button biar gak nested <a> di dalam <a> --}}
+                                <button type="button" data-fallback data-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
+                                    class="hidden mt-2 text-xs text-green-600 hover:underline bg-transparent border-0 p-0 m-0 text-left cursor-pointer">
                                     video tidak tersedia — buka di Spotify
-                                </a>
+                                </button>
                             </div>
                         @elseif ($msg->spotify_track_id)
-                            {{-- Fallback: link Spotify biasa kalo gak ada YouTube ID (data lama) --}}
-                            <a href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}" target="_blank"
-                                class="inline-flex items-center gap-1.5 text-xs text-green-600 hover:underline mt-1">
+                            {{-- Fallback: tombol buka Spotify kalo gak ada YouTube ID (data lama) — button biar gak nested <a> --}}
+                            <button type="button" data-open-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
+                                class="inline-flex items-center gap-1.5 text-xs text-green-600 hover:underline mt-1 cursor-pointer bg-transparent border-0 p-0 m-0 text-left">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.6 11.6a.5.5 0 0 1-.7.2c-1.9-1.2-4.4-1.5-7.2-.8a.5.5 0 0 1-.2-1c3-.7 5.8-.4 7.9 1a.5.5 0 0 1 .2.6zm1-2.2a.6.6 0 0 1-.8.3c-2.2-1.4-5.6-1.7-8.2-1a.6.6 0 0 1-.4-1.2c3-.8 6.8-.5 9.2 1a.6.6 0 0 1 .2.9zm.1-2.3c-2.7-1.6-7-1.7-9.6-1a.7.7 0 0 1-.4-1.4c3-1 7.5-.8 10.5 1a.7.7 0 0 1-.5 1.3z"/></svg>
                                 buka lagu di Spotify
-                            </a>
+                            </button>
                         @endif
-                    </div>
+                    </a>
                 @endforeach
             </div>
 
@@ -165,6 +174,34 @@
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">
         <p class="text-center text-gray-500 text-xs">SMK Negeri 1 &copy; {{ date('Y') }} &mdash; SkanidaSong</p>
     </footer>
+
+    {{-- ─── JS: DROPDOWN KELAS CUSTOM (auto submit filter) ─── --}}
+    <script>
+        (function () {
+            var dd = document.getElementById('kelas-dd');
+            if (!dd) return;
+            var btn = document.getElementById('kelas-btn');
+            var list = document.getElementById('kelas-list');
+            var input = document.getElementById('kelas');
+            var form = btn.form;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                list.classList.toggle('hidden');
+            });
+
+            list.querySelectorAll('[data-value]').forEach(function (li) {
+                li.addEventListener('click', function () {
+                    input.value = li.getAttribute('data-value');
+                    if (form) form.submit();
+                });
+            });
+
+            document.addEventListener('click', function () {
+                list.classList.add('hidden');
+            });
+        })();
+    </script>
 </body>
 
 </html>

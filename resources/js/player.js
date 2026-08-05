@@ -146,6 +146,8 @@ function toggleCard(card) {
 document.addEventListener('click', (e) => {
     const playBtn = e.target.closest('[data-play]');
     if (playBtn) {
+        // Kartu sekarang adalah <a> — cegah navigasi kalau yang diklik tombol play
+        e.preventDefault();
         const card = playBtn.closest('[data-player-card]');
         if (!card) return;
 
@@ -160,10 +162,28 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const fallbackLink = e.target.closest('[data-fallback]');
-    if (fallbackLink && player && activeCard) {
+    const fallbackBtn = e.target.closest('[data-fallback]');
+    if (fallbackBtn) {
         e.preventDefault();
-        window.open(`https://www.youtube.com/watch?v=${activeCard.dataset.videoId}`, '_blank');
+        if (player && activeCard) {
+            window.open(`https://www.youtube.com/watch?v=${activeCard.dataset.videoId}`, '_blank');
+        } else if (fallbackBtn.dataset.url) {
+            window.open(fallbackBtn.dataset.url, '_blank');
+        }
+        return;
+    }
+
+    // Tombol "buka lagu di Spotify" (data lama tanpa YouTube) — buka URL dari data-open-url
+    const openUrlBtn = e.target.closest('[data-open-url]');
+    if (openUrlBtn) {
+        e.preventDefault();
+        if (openUrlBtn.dataset.openUrl) window.open(openUrlBtn.dataset.openUrl, '_blank');
+        return;
+    }
+
+    // Klik di seekbar di dalam kartu — jangan navigasi, biar bisa drag
+    if (e.target.closest('[data-seekbar]')) {
+        e.preventDefault();
         return;
     }
 

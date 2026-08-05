@@ -20,7 +20,7 @@
             <nav class="flex items-center gap-4 sm:gap-6">
                 <a href="{{ route('messages.index') }}"
                     class="text-sm font-semibold text-white bg-[#171717] px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">browse</a>
-                <a href="{{ url('/') }}"
+                <a href="{{ route('story.create') }}"
                     class="text-sm text-gray-500 hover:text-gray-950 transition-colors">tell your story</a>
             </nav>
         </div>
@@ -37,17 +37,18 @@
 
         {{-- Kartu detail besar --}}
         <div class="border border-[#E9E9E9] rounded-xl p-6 sm:p-8 bg-white">
-            {{-- Nama penerima --}}
+            {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
             <div class="mb-2">
-                <h1 class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {{ $message->recipient_name }}</h1>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {{ $message->sender_name ?: 'anonim' }}</p>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {{ $message->recipient_name }}</p>
             </div>
             {{-- Kelas + waktu --}}
             <div class="text-xs text-gray-500 mb-6">
                 {{ $message->kelas }} &bull; {{ $message->created_at->diffForHumans() }} &bull; {{ $message->created_at->format('d M Y, H:i') }}
             </div>
 
-            {{-- Isi pesan lengkap --}}
-            <p class="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">{{ $message->message }}</p>
+            {{-- Isi pesan lengkap (font Reenie Beanie, sama seperti from/to) --}}
+            <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{{ $message->message }}</p>
 
             {{-- Player penuh kalo ada YouTube ID --}}
             @if ($message->youtube_video_id)
