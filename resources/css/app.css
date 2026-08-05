@@ -1,3 +1,45 @@
+/* ─── TAILWIND v3 ─── */
+/* Projekt ini pake Tailwind v3 (via postcss.config.js + tailwind.config.js),
+   jadi direktif @tailwind yang dipake (bukan @import kaya di Tailwind v4) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── FONT UTAMA ─── */
+/* Font sans-serif utama: Plus Jakarta Sans (dari Google Fonts) */
+.font-sans {
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* ─── FONT DEKORATIF ─── */
+/* Font dekoratif: Reenie Beanie — dipake buat judul "SkanidaSong" dan nama penerima */
+.font-reenie {
+    font-family: 'Reenie Beanie', cursive;
+}
+
+/* ─── ANIMASI MARQUEE ─── */
+/* Teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
+.animate-marquee {
+    animation: marquee 30s linear infinite;
+}
+
+/* Animasi marquee reverse — teks jalan dari kiri ke kanan */
+.animate-marquee-reverse {
+    animation: marquee-reverse 30s linear infinite;
+}
+
+/* ─── KEYFRAMES MARQUEE ─── */
+/* Teks jalan dari posisi awal (0) ke -50% */
+/* -50% karena di HTML ada duplikasi konten (2 div), jadi pas setengah jalan konten duplikat udah siap */
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ─── KEYFRAMES MARQUEE REVERSE ─── */
+/* Kebalikan: mulai dari -50% (posisi duplikat), jalan ke 0 (posisi asli) */
+@keyframes marquee-reverse {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0); }
+}

@@ -258,7 +258,7 @@ Halaman ini adalah single-page yang berisi:
 
 | Bagian | Deskripsi |
 |--------|-----------|
-| **Header** | Logo "SendTheSong" + nav: browse & tell your story |
+| **Header** | Logo "SkanidaSong" + nav: browse & tell your story |
 | **Stats Cards** | 3 card: total stories, classes reached, latest story |
 | **Marquee 1** | Nama penerima & kelas jalan dari kanan ke kiri (marquee) |
 | **Marquee 2** | Isi pesan (dipotong 60 karakter) jalan dari kiri ke kanan (marquee-reverse) |

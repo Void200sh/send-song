@@ -5,6 +5,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Message;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SongController;
 
 // ─── RUTE HALAMAN UTAMA (LANDING PAGE) ───
 Route::get('/', function () {
@@ -30,6 +31,12 @@ Route::get('/', function () {
 // ─── RUTE HALAMAN BROWSE / FEED PESAN ───
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
+// ─── RUTE HALAMAN DETAIL PESAN ───
+// Method: GET
+// URL: /messages/{id} — contoh: /messages/12
+// Panggil method show() di MessageController
+Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
+
 // ─── RUTE KIRIM PESAN BARU ───
 Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
 
@@ -52,3 +59,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 });
 
 require __DIR__.'/auth.php';
+
+// ─── API INTERNAL: PENCARIAN & RESOLVE LAGU ───
+Route::prefix('api')->group(function () {
+    Route::get('/songs/search', [SongController::class, 'search'])->name('api.songs.search');
+    Route::post('/songs/resolve', [SongController::class, 'resolve'])->name('api.songs.resolve');
+});

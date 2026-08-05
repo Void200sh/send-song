@@ -1,5 +1,5 @@
 {{-- ─── DOKUMEN HTML ─── --}}
-{{-- Ini adalah halaman utama (landing page) SendTheSong — isinya stats, marquee, dan form kirim pesan --}}
+{{-- Ini adalah halaman utama (landing page) SkanidaSong — isinya stats, marquee, dan form kirim pesan --}}
 <!DOCTYPE html>
 {{-- app()->getLocale() ngambil bahasa dari config Laravel (default: 'id' atau 'en') --}}
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -8,7 +8,8 @@
     <meta charset="utf-8">
     {{-- Viewport biar responsive di HP --}}
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SendTheSong - SMK</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>SkanidaSong - SMK</title>
     {{-- Preconnect ke Google Fonts biar loading font lebih cepet --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
@@ -25,7 +26,7 @@
     <header class="border-b border-[#E9E9E9]">
         <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-20 flex items-center justify-between h-14">
             {{-- Logo — pake font Reenie Beanie yang besar --}}
-            <a href="{{ url('/') }}" class="font-reenie text-[28px] sm:text-[36px] leading-[100%] text-[#171717]">SendTheSong</a>
+            <a href="{{ url('/') }}" class="font-reenie text-[28px] sm:text-[36px] leading-[100%] text-[#171717]">SkanidaSong</a>
             <nav class="flex items-center gap-4 sm:gap-6">
                 {{-- Link ke halaman browse — di landing page, link ini tampil biasa (gak aktif) --}}
                 <a href="{{ route('messages.index') }}"
@@ -43,8 +44,8 @@
         <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-20 pt-8 sm:pt-[140px] pb-8">
             {{-- Judul halaman + tagline --}}
             <div class="text-center mb-10">
-                <h1 class="font-reenie text-[48px] sm:text-[60px] leading-[100%] text-[#171717]">SendTheSong</h1>
-                <p class="text-gray-500 text-sm sm:text-base mt-3">a bunch of the untold words, sent through the song</p>
+                <h1 class="font-reenie text-[48px] sm:text-[60px] leading-[100%] text-[#171717]">SkanidaSong</h1>
+                <p class="text-gray-500 text-sm sm:text-base mt-3">Kata-kata yang tak pernah terkatakan, tersampaikan lewat sebuah lagu</p>
             </div>
 
             {{-- Grid 3 kolom stats card (di HP jadi 1 kolom) --}}
@@ -70,6 +71,17 @@
                     </p>
                     <p class="text-sm text-gray-500 mt-2">latest story</p>
                 </div>
+            </div>
+
+            {{-- Tombol lihat semua — arah ke halaman browse --}}
+            <div class="text-center mb-12">
+                <a href="{{ route('messages.index') }}"
+                    class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#171717] hover:bg-gray-800 text-white text-sm font-semibold transition-colors">
+                    lihat semua
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
             </div>
         </div>
 
@@ -219,11 +231,25 @@
                 </div>
 
                 {{-- Input Link Spotify (opsional) --}}
+                {{-- Diganti: pencarian lagu via Spotify API → pilih lagu → resolve ke YouTube --}}
                 <div>
-                    <label for="spotify_url" class="block text-sm font-medium text-gray-700 mb-1.5">song (spotify link)</label>
-                    <input type="text" name="spotify_url" id="spotify_url"
-                        placeholder="https://open.spotify.com/track/..."
-                        class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors">
+                    <label for="song-search" class="block text-sm font-medium text-gray-700 mb-1.5">song</label>
+                    <div class="relative">
+                        <input type="text" id="song-search" autocomplete="off"
+                            placeholder="cari judul lagu..."
+                            class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors">
+                        {{-- Dropdown hasil pencarian Spotify --}}
+                        <div id="song-results" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg"></div>
+                    </div>
+                    {{-- Chip lagu terpilih + status resolve YouTube --}}
+                    <div id="song-chip" class="hidden mt-2 flex items-center gap-2 p-2 rounded-xl border border-gray-200 bg-gray-50"></div>
+
+                    {{-- Hidden inputs — terisi otomatis saat user pilih lagu --}}
+                    <input type="hidden" name="spotify_track_id" id="inp-spotify-id">
+                    <input type="hidden" name="song_title" id="inp-title">
+                    <input type="hidden" name="song_artist" id="inp-artist">
+                    <input type="hidden" name="cover_url" id="inp-cover">
+                    <input type="hidden" name="youtube_video_id" id="inp-youtube-id">
                 </div>
 
                 {{-- Tombol Submit --}}
@@ -240,7 +266,7 @@
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6">
         {{-- date('Y') nampilin tahun sekarang otomatis --}}
-        <p class="text-center text-gray-500 text-xs">SMK Negeri 1 &copy; {{ date('Y') }} &mdash; SendTheSong</p>
+        <p class="text-center text-gray-500 text-xs">SMK Negeri 1 &copy; {{ date('Y') }} &mdash; SkanidaSong</p>
     </footer>
 </body>
 
