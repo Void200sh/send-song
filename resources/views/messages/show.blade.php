@@ -95,7 +95,7 @@
 
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">
-        <p class="text-center text-gray-500 text-xs">SMK Negeri 1 &copy; {{ date('Y') }} &mdash; SkanidaSong</p>
+        <p class="text-center text-gray-500 text-xs">Artifact studios &copy; {{ date('Y') }} &mdash; SkanidaSong</p>
     </footer>
 </body>
 

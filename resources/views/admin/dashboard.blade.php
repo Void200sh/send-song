@@ -11,7 +11,7 @@
                 <h1 class="page__title font-reenie">
                     Halo, <span>{{ auth()->user()->name }}</span> 👋
                 </h1>
-                <p class="page__description">Ringkasan pesan yang masuk ke SendTheSong SMK.</p>
+                <p class="page__description">Ringkasan pesan yang masuk ke SkanidaSong SMK.</p>
             </div>
             <div class="page__action">
                 <a href="{{ url('/') }}" target="_blank" class="button button--outline">

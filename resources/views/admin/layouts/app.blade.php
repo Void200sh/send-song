@@ -134,7 +134,7 @@
 
             {{-- Footer sidebar: copyright --}}
             <div class="sidebar__footer">
-                <p class="copyright text-muted-foreground text-sm">SMK Negeri 1 &copy; {{ date('Y') }}</p>
+                <p class="copyright text-muted-foreground text-sm">Artifacts studios &copy; {{ date('Y') }}</p>
             </div>
         </aside>
 
