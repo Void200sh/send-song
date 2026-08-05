@@ -8,7 +8,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin') — SendTheSong SMK</title>
+    <title>@yield('title', 'Admin') — Skanida Songs SMK</title>
 
     {{-- Inline guard: baca tema tersimpan dari localStorage SEBELUM render pertama (anti flash) --}}
     <script>
@@ -45,7 +45,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467 1.803 1.803 0 01.99 3.467 2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467m9.894-1.1l-6.87-2.867a1.5 1.5 0 01-.927-1.41V7.24a1.5 1.5 0 011.5-1.5h.75a1.5 1.5 0 011.5 1.5v.691l6.87 2.867a.75.75 0 01.427.902l-.75 2.201z" />
                     </svg>
-                    <span>SendTheSong</span>
+                    <span>Skanida Songs</span>
                 </a>
             </div>
 
