@@ -1,8 +1,11 @@
 // ── PENCARIAN LAGU: Spotify search → resolve YouTube → hidden inputs ──
+// Catatan: gak pakai top-level `return` (bikin SyntaxError di module), jadi tiap listener di-guard aja.
 const input = document.getElementById('song-search');
 const results = document.getElementById('song-results');
 const chip = document.getElementById('song-chip');
 let timer = null;
+
+const hasSearch = Boolean(input && results && chip);
 
 const hidden = (id) => document.getElementById(id);
 
@@ -53,47 +56,49 @@ async function selectTrack(track) {
     }
 }
 
-input.addEventListener('input', () => {
-    clearTimeout(timer);
-    const q = input.value.trim();
-    if (q.length < 2) {
-        results.classList.add('hidden');
-        return;
-    }
-    timer = setTimeout(async () => {
-        try {
-            const data = await fetchJson(`/api/songs/search?q=${encodeURIComponent(q)}`);
-            results.innerHTML = data.tracks.length
-                ? data.tracks.map((t) => `
-                    <button type="button" data-track data-json='${JSON.stringify(t).replace(/'/g, '&#39;')}'
-                        class="w-full flex items-center gap-3 p-2 hover:bg-gray-50 text-left">
-                        <img src="${t.cover_url}" class="w-9 h-9 rounded object-cover" alt="">
-                        <span class="flex-1 min-w-0">
-                            <span class="block text-sm truncate">${t.title}</span>
-                            <span class="block text-xs text-gray-500 truncate">${t.artist}</span>
-                        </span>
-                        <span class="text-[11px] text-gray-400">${fmtDuration(t.duration_ms)}</span>
-                    </button>`).join('')
-                : '<p class="p-3 text-sm text-gray-500">Tidak ditemukan</p>';
-            results.classList.remove('hidden');
-        } catch {
-            results.innerHTML = '<p class="p-3 text-sm text-gray-500">Gagal mencari lagu</p>';
-            results.classList.remove('hidden');
+if (hasSearch) {
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (q.length < 2) {
+            results.classList.add('hidden');
+            return;
         }
-    }, 400);
-});
+        timer = setTimeout(async () => {
+            try {
+                const data = await fetchJson(`/api/songs/search?q=${encodeURIComponent(q)}`);
+                results.innerHTML = data.tracks.length
+                    ? data.tracks.map((t) => `
+                        <button type="button" data-track data-json='${JSON.stringify(t).replace(/'/g, '&#39;')}'
+                            class="w-full flex items-center gap-3 p-2 hover:bg-gray-50 text-left">
+                            <img src="${t.cover_url}" class="w-9 h-9 rounded object-cover" alt="">
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm truncate">${t.title}</span>
+                                <span class="block text-xs text-gray-500 truncate">${t.artist}</span>
+                            </span>
+                            <span class="text-[11px] text-gray-400">${fmtDuration(t.duration_ms)}</span>
+                        </button>`).join('')
+                    : '<p class="p-3 text-sm text-gray-500">Tidak ditemukan</p>';
+                results.classList.remove('hidden');
+            } catch {
+                results.innerHTML = '<p class="p-3 text-sm text-gray-500">Gagal mencari lagu</p>';
+                results.classList.remove('hidden');
+            }
+        }, 400);
+    });
 
-results.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-track]');
-    if (btn) selectTrack(JSON.parse(btn.dataset.json));
-});
+    results.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-track]');
+        if (btn) selectTrack(JSON.parse(btn.dataset.json));
+    });
 
-chip.addEventListener('click', (e) => {
-    if (!e.target.closest('#chip-remove')) return;
-    chip.classList.add('hidden');
-    ['inp-spotify-id', 'inp-title', 'inp-artist', 'inp-cover', 'inp-youtube-id']
-        .forEach((id) => {
-            hidden(id).value = '';
-        });
-    input.value = '';
-});
+    chip.addEventListener('click', (e) => {
+        if (!e.target.closest('#chip-remove')) return;
+        chip.classList.add('hidden');
+        ['inp-spotify-id', 'inp-title', 'inp-artist', 'inp-cover', 'inp-youtube-id']
+            .forEach((id) => {
+                hidden(id).value = '';
+            });
+        input.value = '';
+    });
+}
