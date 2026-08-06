@@ -8,13 +8,32 @@ class YouTubeService
 {
     private const API_URL = 'https://www.googleapis.com/youtube/v3';
 
+    /**
+     * ─── CARI AUDIO YOUTUBE ───
+     * Prioritas:
+     *  1. YouTube Data API v3 (butuh API key — kalau key valid)
+     *  2. Fallback scrape halaman hasil pencarian youtube.com (tanpa API key)
+     * Jadi lagu tetap bisa di-resolve walaupun API key belum diisi / tidak valid.
+     */
     public function searchAudio(string $title, string $artist): ?array
     {
-        $key = config('services.youtube.api_key');
-        if (! $key) {
-            return null;
+        if ($key = config('services.youtube.api_key')) {
+            $match = $this->searchViaApi($key, $title, $artist);
+            if ($match) {
+                return $match;
+            }
         }
 
+        return $this->searchViaScrape($title, $artist);
+    }
+
+    /**
+     * ─── PATH 1: API v3 ───
+     * Coba 2 variasi query, ambil hasil yang paling mirip.
+     * Return null kalau API gagal / hasil kosong (biar jatuh ke fallback).
+     */
+    private function searchViaApi(string $key, string $title, string $artist): ?array
+    {
         $queries = [
             "\"{$artist}\" {$title} official audio",
             "{$title} {$artist} audio",
@@ -40,6 +59,82 @@ class YouTubeService
         }
 
         return null;
+    }
+
+    /**
+     * ─── PATH 2: SCRAPE youtube.com/results (tanpa API key) ───
+     * Parsing JSON `ytInitialData` yang tertanam di HTML halaman hasil pencarian.
+     * Rapi-rapi saja: kalau gagal di query pertama, lanjut query kedua.
+     */
+    private function searchViaScrape(string $title, string $artist): ?array
+    {
+        $queries = [
+            "\"{$artist}\" {$title} official audio",
+            "{$title} {$artist} audio",
+        ];
+
+        foreach ($queries as $query) {
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+                'Accept-Language' => 'en-US,en;q=0.9',
+            ])->get('https://www.youtube.com/results', ['search_query' => $query]);
+
+            if ($response->failed()) {
+                continue;
+            }
+
+            $items = $this->extractVideoItemsFromHtml($response->body());
+            if ($items && ($match = $this->pickBest($items, $artist, $title))) {
+                return $match;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * ─── EKSTRAK VIDEO DARI HTML HASIL PENCARIAN ───
+     * Ambil blok `ytInitialData = {...};` lalu telusuri struktur renderer YouTube.
+     * Normalisasi hasil ke bentuk yang sama dengan response API v3
+     * (id.videoId, snippet.title, snippet.channelTitle) biar bisa dipakai ulang di pickBest().
+     */
+    private function extractVideoItemsFromHtml(string $html): array
+    {
+        preg_match('/ytInitialData\s*=\s*({.+?});<\/script>/s', $html, $matches);
+
+        if (! isset($matches[1])) {
+            return [];
+        }
+
+        $data = json_decode($matches[1], true);
+        if (! is_array($data)) {
+            return [];
+        }
+
+        $sections = $data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'] ?? [];
+
+        $items = [];
+        foreach ($sections as $section) {
+            $contents = $section['itemSectionRenderer']['contents'] ?? [];
+            foreach ($contents as $content) {
+                $video = $content['videoRenderer'] ?? null;
+                if (! $video || empty($video['videoId'])) {
+                    continue;
+                }
+
+                $items[] = [
+                    'id' => ['videoId' => $video['videoId']],
+                    'snippet' => [
+                        'title' => $video['title']['runs'][0]['text']
+                            ?? $video['title']['simpleText']
+                            ?? '',
+                        'channelTitle' => $video['ownerText']['runs'][0]['text'] ?? '',
+                    ],
+                ];
+            }
+        }
+
+        return $items;
     }
 
     private function pickBest(array $items, string $artist, string $title): ?array
@@ -88,10 +183,15 @@ class YouTubeService
 
     private function isReasonableDuration(string $videoId): bool
     {
+        $key = config('services.youtube.api_key');
+        if (! $key) {
+            return true;
+        }
+
         $response = Http::get(self::API_URL . '/videos', [
             'part' => 'contentDetails',
             'id' => $videoId,
-            'key' => config('services.youtube.api_key'),
+            'key' => $key,
         ]);
 
         $duration = $response->json('items.0.contentDetails.duration');
