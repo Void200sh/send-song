@@ -47,8 +47,9 @@ function toggleAuto(shell) {
 }
 
 function shellFor(trigger) {
-  const id = trigger.getAttribute("aria-controls");
-  return (id && document.getElementById(id)) || trigger.closest(SHELL);
+  // The toggle button always lives inside the app-shell it drives. aria-controls
+  // names the drawer (the .sidebar), which is NOT the shell, so resolve upward.
+  return trigger.closest(SHELL);
 }
 
 // Delegated click: the hamburger toggle, plus backdrop dismiss.

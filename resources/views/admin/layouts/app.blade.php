@@ -66,6 +66,18 @@
         [data-theme="light"] .stat__value {
             color: #171717;
         }
+
+        /* Hamburger dipindah ke pojok kiri atas pada layar mobile */
+        @media (max-width: 63.99rem) {
+            .app-shell .navbar .navbar__toggle {
+                margin-inline-start: 0;
+            }
+        }
+
+        /* Beri jarak sel tabel admin biar tidak berantakan (default table--sm cuma 4px) */
+        .table--sm {
+            --table-cell-padding-sm: calc(var(--spacing) * 3);
+        }
     </style>
 
     @stack('styles')
@@ -204,7 +216,7 @@
     </div>
 
     {{-- ─── SCRIPT TEMPLATE ─── --}}
-    <script src="{{ asset('assets/js/app-shell.js') }}"></script>
+    <script src="{{ asset('assets/js/app-shell.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/theme.js') }}"></script>
     @stack('scripts')
 </body>

@@ -57,7 +57,7 @@
                         <p class="text-xs text-white/45 mt-1.5">classes reached</p>
                     </div>
                 </div>
-                <p class="text-xs text-white/35 mt-6">SMK Negeri 1 &copy; {{ date('Y') }}</p>
+                <p class="text-xs text-white/35 mt-6">SMK Negeri 2 &copy; {{ date('Y') }}</p>
             </div>
         </aside>
 
