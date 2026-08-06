@@ -100,7 +100,7 @@
                                         </td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
                                         <td>{{ $msg->kelas }}</td>
-                                        <td class="max-w-36">{{ $msg->message }}</td>
+                                        <td class="max-w-36">{{ \Illuminate\Support\Str::limit($msg->message, 40) }}</td>
                                         <td>
                                             @if ($msg->spotify_track_id)
                                                 <a href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}" target="_blank"

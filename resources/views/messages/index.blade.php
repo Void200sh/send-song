@@ -115,7 +115,7 @@
                             {{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
-                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{{ $msg->message }}</p>
+                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{{ \Illuminate\Support\Str::limit($msg->message, 80) }}</p>
                         {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
                         @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
