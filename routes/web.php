@@ -61,6 +61,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
     Route::delete('/messages/{message}', [AdminController::class, 'destroy'])->name('messages.destroy');
+    Route::post('/messages/{message}/resolve-song', [AdminController::class, 'resolveSong'])->name('messages.resolve-song');
+    Route::get('/songs', [AdminController::class, 'songs'])->name('songs');
+    Route::get('/kelas', [AdminController::class, 'kelas'])->name('kelas');
+    Route::get('/export', [AdminController::class, 'export'])->name('export');
+    Route::get('/export/messages.csv', [AdminController::class, 'exportMessagesCsv'])->name('export.messages');
+    Route::get('/export/songs.csv', [AdminController::class, 'exportSongsCsv'])->name('export.songs');
 });
 
 require __DIR__.'/auth.php';
