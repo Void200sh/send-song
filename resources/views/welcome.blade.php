@@ -10,8 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SkanidaSong - SMK</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
     {{-- Preconnect ke Google Fonts biar loading font lebih cepet --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
