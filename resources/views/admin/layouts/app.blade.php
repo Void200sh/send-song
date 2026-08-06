@@ -10,6 +10,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') — Skanida Songs SMK</title>
 
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" href="/favicon.ico">
+
     {{-- Inline guard: baca tema tersimpan dari localStorage SEBELUM render pertama (anti flash) --}}
     <script>
         (function () {
