@@ -51,8 +51,8 @@ class MessageController extends Controller
 
         // ─── EKSEKUSI QUERY ───
         // latest() = urutkan dari yang terbaru (created_at DESC)
-        // paginate(10) = ambil 10 pesan per halaman, sisanya dipaginasi
-        $messages = $query->latest()->paginate(10);
+        // paginate(12) = ambil 12 pesan per halaman, sisanya dipaginasi
+        $messages = $query->latest()->paginate(12);
 
         // Simpan nilai filter buat dikirim ke view (biar inputnya gak hilang pas dirender)
         $selectedKelas = $request->kelas;
@@ -126,7 +126,7 @@ class MessageController extends Controller
         // ─── REDIRECT ───
         // Arahkan user ke halaman browse, filter sesuai kelas yang dipilih
         // Kirim flash message 'success' biar tampil notifikasi hijau
-        return redirect()->route('messages.index', ['kelas' => $validated['kelas']])
+        return redirect()->route('messages.index')
             ->with('success', 'Pesan berhasil dikirim!');
     }
 
