@@ -118,6 +118,8 @@
                         {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
                         @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
+                                data-clip-start="{{ $msg->clip_start_seconds }}"
+                                data-clip-end="{{ $msg->clip_end_seconds }}"
                                 class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 transition-shadow">
                                 <div class="flex items-center gap-3">
                                     @if ($msg->cover_url)

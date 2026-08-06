@@ -130,6 +130,125 @@
             </div>
         </div>
 
+        {{-- ─── ROW: TOP LAGU + STATISTIK LAGU ─── --}}
+        <div class="grid grid-cols-12 gap-6">
+            {{-- Top lagu --}}
+            <div class="col-span-12 xl:col-span-8">
+                <div class="card">
+                    <div class="card__header">
+                        <div class="card__heading">
+                            <h2 class="card__title">Lagu Terpopuler</h2>
+                            <p class="card__subtitle">Top 5 lagu yang paling sering didedikasikan</p>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        @if ($topSongs->isEmpty())
+                            <div class="empty-state empty-state--sm">
+                                <p class="empty-state__title">Belum ada lagu</p>
+                                <p class="empty-state__text">Lagu yang dipilih pengirim bakal muncul di sini.</p>
+                            </div>
+                        @else
+                            <div class="list-group list-group--block">
+                                @foreach ($topSongs as $song)
+                                    <div class="list-group__item">
+                                        <div class="media">
+                                            @if ($song->cover_url)
+                                                <img src="{{ $song->cover_url }}"
+                                                    style="width:44px;height:44px;border-radius:10px;flex-shrink:0"
+                                                    class="object-cover" alt="cover">
+                                            @else
+                                                <span class="media__figure badge {{ $loop->first ? 'badge--primary' : 'badge--soft' }}">
+                                                    {{ $loop->iteration }}
+                                                </span>
+                                            @endif
+                                            <div class="media__content">
+                                                <p class="media__title">{{ $song->song_title }}</p>
+                                                <span class="media__meta">{{ $song->song_artist }} &bull; {{ $song->total }}x dikirim</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Statistik lagu --}}
+            <div class="col-span-12 xl:col-span-4">
+                <div class="card">
+                    <div class="card__header">
+                        <div class="card__heading">
+                            <h2 class="card__title">Statistik Lagu</h2>
+                            <p class="card__subtitle">Seberapa banyak pesan yang bawa lagu</p>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        <div class="grid grid-cols-12 gap-4 mb-4">
+                            <div class="col-span-12 sm:col-span-6 xl:col-span-6">
+                                <div class="card card--stat">
+                                    <div class="card__body">
+                                        <div class="stat">
+                                            <p class="stat__label text-eyebrow">Dengan Lagu</p>
+                                            <p class="stat__value font-reenie">{{ number_format($songsCount) }}</p>
+                                            @php $songPct = $totalMessages > 0 ? round($songsCount / $totalMessages * 100) : 0; @endphp
+                                            <p class="stat__meta text-muted-foreground text-sm">{{ $songPct }}% dari semua pesan</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-span-12 sm:col-span-6 xl:col-span-6">
+                                <div class="card card--stat">
+                                    <div class="card__body">
+                                        <div class="stat">
+                                            <p class="stat__label text-eyebrow">Tanpa Lagu</p>
+                                            <p class="stat__value font-reenie">{{ number_format($noSongsCount) }}</p>
+                                            <p class="stat__meta text-muted-foreground text-sm">pesan tanpa lagu</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group list-group--block">
+                            <div class="list-group__item">
+                                <div class="media">
+                                    <span class="media__figure badge badge--soft">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                            fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                            stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M9 18V5l12-2v13" />
+                                            <circle cx="6" cy="18" r="3" />
+                                            <circle cx="18" cy="16" r="3" />
+                                        </svg>
+                                    </span>
+                                    <div class="media__content">
+                                        <p class="media__title">{{ number_format($uniqueSongs) }} lagu unik</p>
+                                        <span class="media__meta">judul lagu berbeda yang dikirim</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="list-group__item">
+                                <div class="media">
+                                    <span class="media__figure badge badge--soft">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                            fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                            stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </span>
+                                    <div class="media__content">
+                                        <p class="media__title">{{ number_format($uniqueArtists) }} artis unik</p>
+                                        <span class="media__meta">penyanyi yang didedikasikan</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- ─── PESAN TERBARU ─── --}}
         <div class="card">
             <div class="card__header">

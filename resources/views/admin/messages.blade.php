@@ -30,6 +30,12 @@
                 <div class="alert__description">{{ session('success') }}</div>
             </div>
         @endif
+        @if (session('error'))
+            <div class="alert alert--danger">
+                <div class="alert__title">Gagal</div>
+                <div class="alert__description">{{ session('error') }}</div>
+            </div>
+        @endif
 
         {{-- ─── CARD TABEL PESAN ─── --}}
         <div class="card">
@@ -102,11 +108,54 @@
                                         <td>{{ $msg->kelas }}</td>
                                         <td class="max-w-36">{{ \Illuminate\Support\Str::limit($msg->message, 40) }}</td>
                                         <td>
-                                            @if ($msg->spotify_track_id)
-                                                <a href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}" target="_blank"
-                                                    class="font-medium text-[#1DB954] hover:underline">
-                                                    Spotify
-                                                </a>
+                                            @php $hasSong = $msg->song_title || $msg->spotify_track_id || $msg->youtube_video_id; @endphp
+                                            @if ($hasSong)
+                                                <div class="flex items-center gap-2 min-w-0">
+                                                    @if ($msg->cover_url)
+                                                        <img src="{{ $msg->cover_url }}"
+                                                            style="width:36px;height:36px;border-radius:8px;flex-shrink:0"
+                                                            class="object-cover" alt="cover">
+                                                    @endif
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm font-medium"
+                                                            style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                                                            title="{{ $msg->song_title }}">
+                                                            {{ $msg->song_title ?: 'Lagu terpasang' }}
+                                                        </p>
+                                                        @if ($msg->song_artist)
+                                                            <p class="text-xs text-muted-foreground"
+                                                                style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                                                {{ $msg->song_artist }}
+                                                            </p>
+                                                        @endif
+                                                        <div class="flex items-center gap-2 mt-1 text-xs">
+                                                            @if ($msg->youtube_video_id)
+                                                                <a href="https://www.youtube.com/watch?v={{ $msg->youtube_video_id }}"
+                                                                    target="_blank" class="font-medium" style="color:#dc2626">
+                                                                    YouTube
+                                                                </a>
+                                                            @endif
+                                                            @if ($msg->spotify_track_id)
+                                                                <a href="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
+                                                                    target="_blank" class="font-medium" style="color:#1db954">
+                                                                    Spotify
+                                                                </a>
+                                                            @endif
+                                                            {{-- Tombol resolve ulang: cari YouTube ID yang hilang (data lama / resolve gagal) --}}
+                                                            @if ($msg->song_title && ! $msg->youtube_video_id)
+                                                                <form method="POST" action="{{ route('admin.messages.resolve-song', $msg) }}"
+                                                                    class="inline">
+                                                                    @csrf
+                                                                    <button type="submit"
+                                                                        style="background:none;border:0;padding:0;margin:0;color:#6b7280;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer"
+                                                                        title="Cari audio di YouTube untuk lagu ini">
+                                                                        resolve
+                                                                    </button>
+                                                                </form>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             @else
                                                 <span class="text-muted-foreground text-xs">—</span>
                                             @endif

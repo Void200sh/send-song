@@ -97,6 +97,8 @@ class MessageController extends Controller
             'cover_url' => 'nullable|string|max:1000',
             'youtube_video_id' => 'nullable|string|max:50',
             'spotify_url' => 'nullable|string|max:500',
+            'clip_start_seconds' => 'nullable|integer|min:0|max:600',
+            'clip_end_seconds' => 'nullable|integer|min:1|max:600',
         ]);
 
         // ─── NORMALISASI NAMA PENGIRIM ───
@@ -104,6 +106,24 @@ class MessageController extends Controller
         // Biar di admin gak nampil "   " yang jelek
         if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
             $validated['sender_name'] = null;
+        }
+
+        // ─── NORMALISASI KLIP LAGU ───
+        // Klip valid = mulai & selesai terisi, dan selesai > mulai.
+        // Kalo gak lengkap / gak valid, treat sebagai full lagu (keduanya NULL).
+        $start = $request->filled('clip_start_seconds')
+            ? (int) $validated['clip_start_seconds']
+            : null;
+        $end = $request->filled('clip_end_seconds')
+            ? (int) $validated['clip_end_seconds']
+            : null;
+
+        $validated['clip_start_seconds'] = null;
+        $validated['clip_end_seconds'] = null;
+
+        if ($start !== null && $end !== null && $end > $start) {
+            $validated['clip_start_seconds'] = $start;
+            $validated['clip_end_seconds'] = $end;
         }
 
         // ─── EKSTRAK SPOTIFY TRACK ID (fallback link lama) ───
