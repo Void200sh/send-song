@@ -11,6 +11,18 @@ const fmt = (sec) => {
     return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 };
 
+// Klip custom dari data-clip-start / data-clip-end (kosong = full lagu)
+// Return { start, end } atau null
+function clipFor(card) {
+    if (!card) return null;
+    const start = parseInt(card.dataset.clipStart, 10);
+    const end = parseInt(card.dataset.clipEnd, 10);
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+        return { start, end };
+    }
+    return null;
+}
+
 let apiScriptLoading = false;
 
 function loadYouTubeApi() {
@@ -38,7 +50,21 @@ function startPolling() {
         if (!player || seeking || !activeCard) return;
         const cur = player.getCurrentTime();
         const dur = player.getDuration();
-        if (dur > 0) {
+        const clip = clipFor(activeCard);
+        if (clip) {
+            // Klip [start, end]: lewat batas → loop balik ke start
+            if (cur >= clip.end) {
+                player.seekTo(clip.start, true);
+                return;
+            }
+            if (cur < clip.start) {
+                player.seekTo(clip.start, true);
+                return;
+            }
+            const span = clip.end - clip.start;
+            activeCard.querySelector('[data-progress]').style.width = `${((cur - clip.start) / span) * 100}%`;
+            activeCard.querySelector('[data-duration]').textContent = fmt(span);
+        } else if (dur > 0) {
             activeCard.querySelector('[data-progress]').style.width = `${(cur / dur) * 100}%`;
         }
         activeCard.querySelector('[data-current]').textContent = fmt(cur);
@@ -81,7 +107,14 @@ function createPlayer(card) {
         },
         events: {
             onReady: () => {
-                activeCard.querySelector('[data-duration]').textContent = fmt(player.getDuration());
+                const clip = clipFor(activeCard);
+                if (clip) {
+                    activeCard.querySelector('[data-duration]').textContent = fmt(clip.end - clip.start);
+                    player.seekTo(clip.start, true);
+                } else {
+                    activeCard.querySelector('[data-duration]').textContent =
+                        fmt(player.getDuration());
+                }
                 player.playVideo();
             },
             onStateChange: (e) => {
@@ -211,8 +244,11 @@ document.addEventListener('change', (e) => {
     const slider = e.target.closest('[data-seekbar]');
     if (!slider || !player) return;
     const dur = player.getDuration();
-    if (dur > 0) {
-        player.seekTo((slider.value / slider.max) * dur, true);
+    const clip = clipFor(activeCard);
+    const cap = clip ? clip.end - clip.start : dur;
+    if (cap > 0) {
+        const at = clip ? clip.start + (slider.value / slider.max) * cap : (slider.value / slider.max) * cap;
+        player.seekTo(at, true);
     }
     setTimeout(() => {
         seeking = false;
@@ -234,3 +270,78 @@ window.addEventListener('load', () => {
         }
     });
 });
+
+// ── REVIEW FULL/KLIP (halaman story) — pakai player YT tersembunyi yang sama ──
+// Kartu pesan & review tidak pernah satu halaman, jadi aman berbagi instance `player`.
+let reviewPlayerCreated = false;
+const reviewHandlers = { ended: null, error: null };
+
+function createReviewPlayer(videoId, startSec) {
+    reviewPlayerCreated = true;
+    player = new YT.Player('yt-audio-host', {
+        videoId,
+        width: 1,
+        height: 1,
+        playerVars: {
+            playsinline: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            rel: 0,
+            modestbranding: 1,
+            start: startSec || 0,
+        },
+        events: {
+            onReady: () => {
+                player.playVideo();
+            },
+            onStateChange: (e) => {
+                if (e.data === YT.PlayerState.ENDED) reviewHandlers.ended?.();
+            },
+            onError: () => {
+                reviewHandlers.error?.();
+            },
+        },
+    });
+}
+
+window.storyReview = {
+    ensureReady() {
+        return ensureApiReady();
+    },
+    isLoaded() {
+        return reviewPlayerCreated && !!player;
+    },
+    videoId: '',
+    play(videoId, startSec) {
+        this.videoId = videoId;
+        if (!reviewPlayerCreated || !player) {
+            createReviewPlayer(videoId, startSec);
+            return;
+        }
+        if (startSec && startSec > 0) player.loadVideoById(videoId, startSec);
+        else player.loadVideoById(videoId);
+        player.playVideo();
+    },
+    resume() {
+        player?.playVideo();
+    },
+    pause() {
+        player?.pauseVideo();
+    },
+    seek(sec) {
+        player?.seekTo(sec, true);
+    },
+    time() {
+        return player ? player.getCurrentTime() : 0;
+    },
+    duration() {
+        return player ? player.getDuration() : 0;
+    },
+    state() {
+        return player ? player.getPlayerState() : -1;
+    },
+    on(event, fn) {
+        reviewHandlers[event] = fn;
+    },
+};

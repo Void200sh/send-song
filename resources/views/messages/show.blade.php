@@ -55,6 +55,8 @@
             {{-- Player penuh kalo ada YouTube ID --}}
             @if ($message->youtube_video_id)
                 <div data-player-card data-video-id="{{ $message->youtube_video_id }}"
+                    data-clip-start="{{ $message->clip_start_seconds }}"
+                    data-clip-end="{{ $message->clip_end_seconds }}"
                     class="rounded-xl border border-gray-200 bg-gray-50 p-4 transition-shadow">
                     <div class="flex items-center gap-3">
                         @if ($message->cover_url)

@@ -24,6 +24,8 @@ class Message extends Model
         'song_artist',      // string/null — nama penyanyi
         'cover_url',        // string/null — gambar album (cover art)
         'youtube_video_id', // string/null — ID video YouTube hasil resolve
+        'clip_start_seconds', // int/null — detik mulai clip lagu (null = full lagu)
+        'clip_end_seconds', // int/null — detik selesai clip lagu (null = full lagu)
     ];
     // ─── KOLOM LAIN YANG GAK PERLU DIISI LANGSUNG ───
     // id → auto increment (primary key)
