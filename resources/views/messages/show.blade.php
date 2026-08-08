@@ -40,8 +40,8 @@
         <div class="border border-[#E9E9E9] rounded-xl p-6 sm:p-8 bg-white">
             {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
             <div class="mb-2">
-                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {{ $message->sender_name ?: 'anonim' }}</p>
-                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {{ $message->recipient_name }}</p>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
             </div>
             {{-- Kelas + waktu --}}
             <div class="text-xs text-gray-500 mb-6">
@@ -49,7 +49,7 @@
             </div>
 
             {{-- Isi pesan lengkap (font Reenie Beanie, sama seperti from/to) --}}
-            <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{{ $message->message }}</p>
+            <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{!! \App\Support\EmojiText::small($message->message) !!}</p>
 
             {{-- Player penuh kalo ada YouTube ID --}}
             @if ($message->youtube_video_id)
@@ -94,7 +94,43 @@
                 </a>
             @endif
         </div>
+
+        {{-- Tombol unduh pesan jadi gambar story 9:16 --}}
+        <div class="mt-4">
+            <button type="button" data-story-download
+                class="w-full py-3 px-6 rounded-xl bg-[#171717] text-white font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer enabled:hover:bg-gray-800 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                save as png
+            </button>
+        </div>
     </main>
+
+    {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR INSTAGRAM STORY ─── --}}
+    {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
+    {{-- desain konsisten sama kartu detail di atas. --}}
+    <div data-story-art
+        class="fixed top-0 left-0 w-[1080px] h-[1920px] bg-[#FFFFFF] flex flex-col items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none">
+        <p class="font-reenie text-[56px] leading-[100%] text-[#171717] mb-20">SkanidaSong.my.id</p>
+
+        <p class="font-reenie text-[84px] leading-[110%] text-[#171717]">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
+        <p class="font-reenie text-[84px] leading-[110%] text-[#171717] mb-10">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
+
+        <p class="text-[26px] text-gray-500 mb-14">{{ $message->kelas }} &bull; {{ $message->created_at->format('d M Y') }}</p>
+
+        <p class="font-reenie text-[64px] leading-[115%] text-[#171717] max-w-[880px]">{!! \App\Support\EmojiText::small($message->message) !!}</p>
+
+        @if ($message->song_title)
+            <div class="mt-16 flex items-center gap-6 bg-gray-50 border border-[#E9E9E9] rounded-3xl px-8 py-5">
+                @if ($message->cover_url)
+                    <img data-story-cover src="{{ $message->cover_url }}" class="w-24 h-24 rounded-2xl object-cover" alt="cover">
+                @endif
+                <div class="text-left">
+                    <p class="text-[34px] font-bold text-gray-950 max-w-[560px] truncate">{{ $message->song_title }}</p>
+                    <p class="text-[26px] text-gray-500">{{ $message->song_artist }}</p>
+                </div>
+            </div>
+        @endif
+    </div>
 
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">

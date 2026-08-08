@@ -106,7 +106,7 @@
                                         </td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
                                         <td>{{ $msg->kelas }}</td>
-                                        <td class="max-w-36">{{ \Illuminate\Support\Str::limit($msg->message, 40) }}</td>
+                                        <td class="max-w-36">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}</td>
                                         <td>
                                             @php $hasSong = $msg->song_title || $msg->spotify_track_id || $msg->youtube_video_id; @endphp
                                             @if ($hasSong)

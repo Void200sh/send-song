@@ -127,7 +127,7 @@
                     @foreach ($marqueeMessages as $msg)
                         {{-- Str::limit potong teks jadi maksimal 60 karakter, font Reenie Beanie --}}
                         <span class="font-reenie text-[20px] leading-[100%] text-[#171717]">
-                            "{{ \Illuminate\Support\Str::limit($msg->message, 60) }}"
+                            "{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 60)) !!}"
                         </span>
                     @endforeach
                 </div>
@@ -135,7 +135,7 @@
                 <div class="flex gap-10 shrink-0">
                     @foreach ($marqueeMessages as $msg)
                         <span class="font-reenie text-[20px] leading-[100%] text-[#171717]">
-                            "{{ \Illuminate\Support\Str::limit($msg->message, 60) }}"
+                            "{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 60)) !!}"
                         </span>
                     @endforeach
                 </div>

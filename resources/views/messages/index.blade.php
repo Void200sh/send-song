@@ -106,15 +106,15 @@
                         class="block border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm bg-white cursor-pointer">
                         {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
-                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {{ $msg->sender_name ?: 'anonim' }}</p>
-                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {{ $msg->recipient_name }}</p>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($msg->recipient_name) !!}</p>
                         </div>
                         {{-- Kelas + waktu (relatif, ex: "XI PPLG 1 • 2 hours ago") --}}
                         <div class="text-xs text-gray-500 mb-3">
                             {{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
-                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{{ \Illuminate\Support\Str::limit($msg->message, 80) }}</p>
+                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 80)) !!}</p>
                         {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
                         @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
