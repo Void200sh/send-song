@@ -26,9 +26,28 @@ class Message extends Model
         'youtube_video_id', // string/null — ID video YouTube hasil resolve
         'clip_start_seconds', // int/null — detik mulai clip lagu (null = full lagu)
         'clip_end_seconds', // int/null — detik selesai clip lagu (null = full lagu)
+        'duration_seconds', // int/null — durasi asli lagu penuh (detik)
     ];
     // ─── KOLOM LAIN YANG GAK PERLU DIISI LANGSUNG ───
     // id → auto increment (primary key)
     // created_at → diisi otomatis sama Laravel
     // updated_at → diisi otomatis sama Laravel
+
+    // Durasi yang ditampilkan di kartu public: durasi klip (end-start) kalau ada klip,
+    // selain itu durasi lagu penuh. Fallback "0:00" kalau keduanya belum diketahui.
+    public function getDisplayDurationAttribute(): string
+    {
+        if ($this->clip_start_seconds !== null
+            && $this->clip_end_seconds !== null
+            && $this->clip_end_seconds > $this->clip_start_seconds
+        ) {
+            $seconds = $this->clip_end_seconds - $this->clip_start_seconds;
+        } elseif ($this->duration_seconds !== null && $this->duration_seconds > 0) {
+            $seconds = $this->duration_seconds;
+        } else {
+            return '0:00';
+        }
+
+        return sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
 }

@@ -78,7 +78,7 @@
                             <input data-seekbar type="range" min="0" max="1000" value="0"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         </div>
-                        <span data-duration class="text-[11px] text-gray-500 w-8 text-right">0:00</span>
+                        <span data-duration class="text-[11px] text-gray-500 w-8 text-right">{{ $message->display_duration }}</span>
                     </div>
                     <a data-fallback href="https://open.spotify.com/track/{{ $message->spotify_track_id }}"
                         target="_blank" class="hidden mt-2 text-xs text-green-600 hover:underline">

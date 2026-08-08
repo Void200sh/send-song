@@ -121,6 +121,7 @@
                     <input type="hidden" name="youtube_video_id" id="inp-youtube-id">
                     <input type="hidden" name="clip_start_seconds" id="inp-clip-start">
                     <input type="hidden" name="clip_end_seconds" id="inp-clip-end">
+                    <input type="hidden" name="duration_seconds" id="inp-duration">
 
                     {{-- Pemilih durasi — muncul setelah lagu dipilih. Toggle full lagu / klip custom + waveform review --}}
                     <div id="song-duration" class="hidden mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">

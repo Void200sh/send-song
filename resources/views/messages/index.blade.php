@@ -144,7 +144,7 @@
                                         <input data-seekbar type="range" min="0" max="1000" value="0"
                                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                     </div>
-                                    <span data-duration class="text-[11px] text-gray-500 w-8 text-right">0:00</span>
+                                    <span data-duration class="text-[11px] text-gray-500 w-8 text-right">{{ $msg->display_duration }}</span>
                                 </div>
                                 {{-- Fallback kalo video YouTube error/dihapus — button biar gak nested <a> di dalam <a> --}}
                                 <button type="button" data-fallback data-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"

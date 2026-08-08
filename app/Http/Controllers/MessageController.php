@@ -99,6 +99,7 @@ class MessageController extends Controller
             'spotify_url' => 'nullable|string|max:500',
             'clip_start_seconds' => 'nullable|integer|min:0|max:600',
             'clip_end_seconds' => 'nullable|integer|min:1|max:600',
+            'duration_seconds' => 'nullable|integer|min:0|max:3600',
         ]);
 
         // ─── NORMALISASI NAMA PENGIRIM ───

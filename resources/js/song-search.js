@@ -315,12 +315,9 @@ function updateSelection() {
     updatePlayhead();
     if (reviewActive && clipMode === 'klip') {
         if (reviewSource === 'yt' && window.storyReview) {
-            const cur = window.storyReview.time();
-            if (cur < clipStart || cur > clipEnd) window.storyReview.seek(clipStart);
+            window.storyReview.seek(clipStart);
         } else if (reviewSource === 'preview') {
-            if (previewAudio.currentTime < clipStart || previewAudio.currentTime > previewLength()) {
-                previewAudio.currentTime = Math.min(clipStart, previewLength());
-            }
+            previewAudio.currentTime = Math.min(clipStart, previewLength());
         }
     }
 }
@@ -582,6 +579,7 @@ function selectTrackState(track) {
     selectedTrack = track;
     const ms = Math.round((track.duration_ms || 0) / 1000);
     maxSeconds = Math.max(30, ms); // ruler = durasi lagu penuh
+    hidden('inp-duration').value = String(Math.max(0, ms));
     previewLengthKnown = 30;
     clipMode = 'full';
     clipStart = 0;
@@ -825,7 +823,7 @@ if (hasSearch) {
     chip.addEventListener('click', (e) => {
         if (!e.target.closest('#chip-remove')) return;
         chip.classList.add('hidden');
-        ['inp-spotify-id', 'inp-title', 'inp-artist', 'inp-cover', 'inp-youtube-id']
+        ['inp-spotify-id', 'inp-title', 'inp-artist', 'inp-cover', 'inp-youtube-id', 'inp-duration']
             .forEach((id) => {
                 hidden(id).value = '';
             });
