@@ -7,11 +7,26 @@ import { toPng } from 'html-to-image';
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-function triggerDownload(dataUrl) {
+function triggerDownload(dataUrl, filename) {
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = 'skanidasong-story.png';
+    a.download = filename;
     a.click();
+}
+
+// Nama file unik: ID pesan + timestamp, biar gak ketimpa file unduhan sebelumnya
+function buildFilename(art) {
+    const id = art?.dataset.storyId || 'x';
+    const t = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp =
+        t.getFullYear() +
+        pad(t.getMonth() + 1) +
+        pad(t.getDate()) + '-' +
+        pad(t.getHours()) +
+        pad(t.getMinutes()) +
+        pad(t.getSeconds());
+    return `skanidasong-story-${id}-${stamp}.png`;
 }
 
 // toPng error kalau ada gambar yang gagal di-fetch (cover mati / kena CORS),
@@ -58,11 +73,12 @@ export function initStoryDownload() {
             await document.fonts.ready;
 
             const dataUrl = await renderArt(art);
+            const filename = buildFilename(art);
 
             // Mobile: pakai Web Share API biar bisa langsung share ke Instagram Stories
             if (navigator.canShare && navigator.share) {
                 const blob = await (await fetch(dataUrl)).blob();
-                const file = new File([blob], 'skanidasong-story.png', { type: 'image/png' });
+                const file = new File([blob], filename, { type: 'image/png' });
                 if (navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({ files: [file], title: 'SkanidaSong story' });
@@ -74,7 +90,7 @@ export function initStoryDownload() {
                 }
             }
 
-            triggerDownload(dataUrl);
+            triggerDownload(dataUrl, filename);
         } catch (err) {
             console.error('gagal render story:', err);
             alert('gagal membuat gambar. coba lagi.');

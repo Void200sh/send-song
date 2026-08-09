@@ -108,7 +108,7 @@
     {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR INSTAGRAM STORY ─── --}}
     {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
     {{-- desain konsisten sama kartu detail di atas. --}}
-    <div data-story-art
+    <div data-story-art data-story-id="{{ $message->id }}"
         class="fixed top-0 left-0 w-[1080px] h-[1920px] bg-[#FFFFFF] flex flex-col items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none">
         <p class="font-reenie text-[56px] leading-[100%] text-[#171717] mb-20">SkanidaSong.my.id</p>
 
