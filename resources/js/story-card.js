@@ -88,6 +88,21 @@ async function renderArtChecked(art) {
     return blob;
 }
 
+// Auto-fit: kalau konten kartu lebih tinggi dari kanvas (pesan panjang),
+// scale wrapper dengan proporsional biar semuanya muat — tanpa terpotong
+// maupun saling tumpuk. scrollHeight = ukuran layout (belum termasuk transform).
+function fitToCanvas(art) {
+    const inner = art?.querySelector('[data-story-inner]');
+    if (!inner) return;
+    const MAX = 1920 * 0.96;
+    const height = inner.scrollHeight;
+    if (height > MAX) {
+        const scale = (MAX / height).toFixed(4);
+        inner.style.transform = `scale(${scale})`;
+        inner.style.transformOrigin = 'center center';
+    }
+}
+
 export function initStoryDownload() {
     const button = document.querySelector('[data-story-download]');
     const art = document.querySelector('[data-story-art]');
@@ -114,6 +129,7 @@ export function initStoryDownload() {
         clearError();
         try {
             await fontsReady();
+            fitToCanvas(art);
 
             const blob = await renderArtChecked(art);
             if (!blob) throw new Error('blob kosong');

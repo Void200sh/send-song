@@ -110,27 +110,30 @@
     {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
     {{-- desain konsisten sama kartu detail di atas. --}}
     <div data-story-art data-story-id="{{ $message->id }}"
-        class="fixed top-0 left-0 w-[1080px] h-[1920px] bg-[#FFFFFF] flex flex-col items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none">
-        <p class="font-reenie text-[56px] leading-[150%] text-[#171717] mb-16">SkanidaSong.my.id</p>
+        class="fixed top-0 left-0 w-[1080px] h-[1920px] bg-[#FFFFFF] flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none">
+        {{-- Wrapper konten — diukur & di-scale otomatis oleh JS biar selalu muat di 1920px --}}
+        <div data-story-inner class="w-full flex flex-col items-center justify-center">
+            <p class="font-reenie text-[48px] leading-[100%] text-[#171717] mb-14" style="line-height:1.8">SkanidaSong.my.id</p>
 
-        <p class="font-reenie text-[84px] leading-[150%] text-[#171717]">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
-        <p class="font-reenie text-[84px] leading-[150%] text-[#171717] mb-14">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
+            <p class="font-reenie text-[72px] text-[#171717]" style="line-height:1.8">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
+            <p class="font-reenie text-[72px] text-[#171717] mb-10" style="line-height:1.8">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
 
-        <p class="text-[26px] text-gray-500 mb-16">{{ $message->kelas }} &bull; {{ $message->created_at->format('d M Y') }}</p>
+            <p class="text-[24px] text-gray-500 mb-12">{{ $message->kelas }} &bull; {{ $message->created_at->format('d M Y') }}</p>
 
-        <p class="font-reenie text-[64px] leading-[150%] text-[#171717] max-w-[880px]">{!! \App\Support\EmojiText::small($message->message) !!}</p>
+            <p class="font-reenie text-[56px] text-[#171717] max-w-full" style="line-height:1.8">{!! \App\Support\EmojiText::small($message->message) !!}</p>
 
-        @if ($message->song_title)
-            <div class="mt-16 flex items-center gap-6 bg-gray-50 border border-[#E9E9E9] rounded-3xl px-8 py-5">
-                @if ($message->cover_url)
-                    <img data-story-cover src="{{ $message->cover_url }}" class="w-24 h-24 rounded-2xl object-cover" alt="cover">
-                @endif
-                <div class="text-left">
-                    <p class="text-[34px] font-bold text-gray-950 max-w-[560px] truncate">{{ $message->song_title }}</p>
-                    <p class="text-[26px] text-gray-500">{{ $message->song_artist }}</p>
+            @if ($message->song_title)
+                <div class="mt-10 flex items-center gap-6 bg-gray-50 border border-[#E9E9E9] rounded-3xl px-8 py-5">
+                    @if ($message->cover_url)
+                        <img data-story-cover src="{{ $message->cover_url }}" class="w-20 h-20 rounded-2xl object-cover" alt="cover">
+                    @endif
+                    <div class="text-left">
+                        <p class="text-[30px] font-bold text-gray-950 max-w-[560px] truncate" style="line-height:1.4">{{ $message->song_title }}</p>
+                        <p class="text-[24px] text-gray-500" style="line-height:1.4">{{ $message->song_artist }}</p>
+                    </div>
                 </div>
-            </div>
-        @endif
+            @endif
+        </div>
     </div>
 
     {{-- ─── FOOTER ─── --}}
