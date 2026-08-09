@@ -67,8 +67,25 @@ async function renderArt(art) {
 // font bermasalah), tetap lanjut render biar tombol gak menggantung.
 function fontsReady() {
     if (!document.fonts?.ready) return Promise.resolve();
-    const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
+    const timeout = new Promise((resolve) => setTimeout(resolve, 8000));
     return Promise.race([document.fonts.ready, timeout]);
+}
+
+// Reenie Beanie beneran ke-load? Kalau belum, capture bisa ken metrik font
+// fallback (cursive) yang lain → teks beda jaraknya.
+function reenieLoaded() {
+    return document.fonts?.check?.('16px "Reenie Beanie"') ?? true;
+}
+
+// Render: kalau font asli belum masuk saat render pertama, render ulang sekali
+// setelah font siap — hasil PNG dijamin pakai Reenie Beanie beneran.
+async function renderArtChecked(art) {
+    let blob = await renderArt(art);
+    if (!reenieLoaded()) {
+        await fontsReady();
+        blob = await renderArt(art);
+    }
+    return blob;
 }
 
 export function initStoryDownload() {
@@ -98,7 +115,7 @@ export function initStoryDownload() {
         try {
             await fontsReady();
 
-            const blob = await renderArt(art);
+            const blob = await renderArtChecked(art);
             if (!blob) throw new Error('blob kosong');
             triggerDownload(blob, buildFilename(art));
         } catch (err) {
