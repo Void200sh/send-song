@@ -23,9 +23,7 @@
         })();
     </script>
 
-    {{-- Font — sama kayak landing page: Plus Jakarta Sans (utama) + Reenie Beanie (dekoratif) --}}
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
+    {{-- Font — self-host di /fonts (Plus Jakarta Sans + Reenie Beanie), tanpa CDN --}}
 
     {{-- CSS template Meridian / Stisla — sudah dicompile di public/assets --}}
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">

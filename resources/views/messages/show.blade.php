@@ -8,8 +8,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Story - SkanidaSong SMK</title>
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -110,7 +108,8 @@
     {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
     {{-- desain konsisten sama kartu detail di atas. --}}
     <div data-story-art data-story-id="{{ $message->id }}"
-        class="fixed top-0 left-0 w-[1080px] h-[1920px] bg-[#FFFFFF] flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none">
+        class="fixed top-0 left-0 bg-[#FFFFFF] flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none"
+        style="width:1080px;height:1920px">
         {{-- Wrapper konten — diukur & di-scale otomatis oleh JS biar selalu muat di 1920px --}}
         <div data-story-inner class="w-full flex flex-col items-center justify-center">
             <p class="font-reenie text-[48px] leading-[100%] text-[#171717] mb-14" style="line-height:1.8">SkanidaSong.my.id</p>

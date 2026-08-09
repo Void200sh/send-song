@@ -45,7 +45,7 @@ const CAPTURE = {
     pixelRatio: 1,
     backgroundColor: '#ffffff',
     style: {
-        position: 'fixed',
+        position: 'absolute',
         left: '0px',
         top: '0px',
         opacity: '1',
@@ -71,19 +71,30 @@ function fontsReady() {
     return Promise.race([document.fonts.ready, timeout]);
 }
 
-// Reenie Beanie beneran ke-load? Kalau belum, capture bisa ken metrik font
-// fallback (cursive) yang lain → teks beda jaraknya.
-function reenieLoaded() {
-    return document.fonts?.check?.('16px "Reenie Beanie"') ?? true;
+// Pastikan font Reenie Beanie beneran ter-load (BUKAN cek positif-palsu).
+// fonts.check() bisa bilang "ada" padahal @font-face-nya gagal dimuat (misal
+// CDN mati) — font pakai fallback cursive yang metriknya rapat → teks numpuk.
+// fonts.load() benar-benar mencoba memuat font dan menunggu hasilnya.
+async function guaranteeFonts() {
+    try {
+        const result = await Promise.race([
+            document.fonts.load('48px "Reenie Beanie"'),
+            new Promise((resolve) => setTimeout(resolve, 8000)),
+        ]);
+        return Array.isArray(result) && result.some((f) => f.family === 'Reenie Beanie');
+    } catch {
+        return false;
+    }
 }
 
-// Render: kalau font asli belum masuk saat render pertama, render ulang sekali
-// setelah font siap — hasil PNG dijamin pakai Reenie Beanie beneran.
-async function renderArtChecked(art) {
+// Render dua tahap: render pertama, lalu kalau font asli belum benar-benar
+// termuat, tunggu sebentar lagi dan render ulang — PNG dijamin pakai
+// Reenie Beanie beneran, bukan fallback cursive yang bikin teks tumpuk.
+async function renderArtChecked(art, fontLoaded) {
     let blob = await renderArt(art);
-    if (!reenieLoaded()) {
-        await fontsReady();
-        blob = await renderArt(art);
+    if (!fontLoaded) {
+        const loaded = await guaranteeFonts();
+        if (loaded) blob = await renderArt(art);
     }
     return blob;
 }
@@ -129,9 +140,10 @@ export function initStoryDownload() {
         clearError();
         try {
             await fontsReady();
+            const fontLoaded = await guaranteeFonts();
             fitToCanvas(art);
 
-            const blob = await renderArtChecked(art);
+            const blob = await renderArtChecked(art, fontLoaded);
             if (!blob) throw new Error('blob kosong');
             triggerDownload(blob, buildFilename(art));
         } catch (err) {
