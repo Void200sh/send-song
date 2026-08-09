@@ -2,17 +2,11 @@
 // Dipicu tombol [data-story-download], nge-capture elemen [data-story-art]
 // yang disembunyikan di luar layar pake html-to-image (render asli browser,
 // jadi font Reenie Beanie + warna Tailwind hasilnya sama persis).
-import { toPng } from 'html-to-image';
+// Klik = SELALU download langsung (tanpa share sheet), di semua perangkat.
+import { toBlob } from 'html-to-image';
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-
-function triggerDownload(dataUrl, filename) {
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    a.click();
-}
 
 // Nama file unik: ID pesan + timestamp, biar gak ketimpa file unduhan sebelumnya
 function buildFilename(art) {
@@ -29,7 +23,18 @@ function buildFilename(art) {
     return `skanidasong-story-${id}-${stamp}.png`;
 }
 
-// toPng error kalau ada gambar yang gagal di-fetch (cover mati / kena CORS),
+// Download via Blob URL — lebih reliable di semua browser (termasuk iOS Safari)
+// daripada data URL besar. URL di-revoke setelah klik supaya gak bocor memory.
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// toBlob error kalau ada gambar yang gagal di-fetch (cover mati / kena CORS),
 // jadi render dua tahap: dengan gambar dulu, gagal → ulang tanpa gambar.
 // backgroundColor bikin kanvas pasti putih solid (bukan transparan/hitam),
 // dan style override memaksa klon jadi opacity 1 + posisi di pojok (0,0)
@@ -49,51 +54,56 @@ const CAPTURE = {
 
 async function renderArt(art) {
     try {
-        return await toPng(art, CAPTURE);
+        return await toBlob(art, CAPTURE);
     } catch {
-        return await toPng(art, {
+        return await toBlob(art, {
             ...CAPTURE,
             filter: (node) => !(node instanceof HTMLImageElement),
         });
     }
 }
 
+// Tunggu font selesai dimuat, tapi jangan selamanya — kalo lambat (misal CDN
+// font bermasalah), tetap lanjut render biar tombol gak menggantung.
+function fontsReady() {
+    if (!document.fonts?.ready) return Promise.resolve();
+    const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
+    return Promise.race([document.fonts.ready, timeout]);
+}
+
 export function initStoryDownload() {
     const button = document.querySelector('[data-story-download]');
     const art = document.querySelector('[data-story-art]');
+    const errorBox = document.querySelector('[data-story-error]');
     if (!button || !art) return;
 
     const original = button.textContent.trim();
 
+    const showError = (message) => {
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.classList.remove('hidden');
+    };
+
+    const clearError = () => {
+        if (!errorBox) return;
+        errorBox.classList.add('hidden');
+        errorBox.textContent = '';
+    };
+
     button.addEventListener('click', async () => {
         button.disabled = true;
         button.textContent = 'rendering...';
+        clearError();
         try {
-            // Tunggu font Reenie Beanie selesai dimuat biar ikut ke-embed ke PNG
-            await document.fonts.ready;
+            await fontsReady();
 
-            const dataUrl = await renderArt(art);
-            const filename = buildFilename(art);
-
-            // Mobile: pakai Web Share API biar bisa langsung share ke Instagram Stories
-            if (navigator.canShare && navigator.share) {
-                const blob = await (await fetch(dataUrl)).blob();
-                const file = new File([blob], filename, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({ files: [file], title: 'SkanidaSong story' });
-                        return; // berhasil share — gak perlu download
-                    } catch (err) {
-                        if (err.name === 'AbortError') return; // user batal, jangan download
-                        // share gagal (bukan batal) → lanjut ke download biasa
-                    }
-                }
-            }
-
-            triggerDownload(dataUrl, filename);
+            const blob = await renderArt(art);
+            if (!blob) throw new Error('blob kosong');
+            triggerDownload(blob, buildFilename(art));
         } catch (err) {
             console.error('gagal render story:', err);
-            alert('gagal membuat gambar. coba lagi.');
+            showError('gagal membuat gambar. coba lagi.');
         } finally {
             button.disabled = false;
             button.textContent = original;

@@ -102,6 +102,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
                 save as png
             </button>
+            <p data-story-error class="hidden text-red-500 text-sm mt-2 text-center"></p>
         </div>
     </main>
 
