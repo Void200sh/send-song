@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\MessageReaction;
+use App\Models\MessageView;
 use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Illuminate\Http\Request;
@@ -47,6 +48,10 @@ class MessageController extends Controller
 
         $messages = $query->pinnedFirst()->paginate(12);
 
+        // Kartu yang tampil di halaman ini langsung dihitung sebagai views
+        // (total +1 per pesan, unik per IP lewat tabel message_views).
+        $this->recordViews($messages, $request);
+
         // Load reaksi + emoji yang sudah direaksikan pengunjung ini (biar gak N+1)
         $messages->load('reactions');
         $myReactions = MessageReaction::where('ip_address', SpamDetectionService::clientIp($request))
@@ -67,6 +72,9 @@ class MessageController extends Controller
     public function show(Message $message)
     {
         abort_if($message->is_spam, 404);
+
+        // Membuka halaman detail juga dihitung sebagai views
+        $this->recordViews([$message], request());
 
         // Reaksi: load sekalian + emoji yang udah direaksikan pengunjung ini
         $message->load('reactions');
@@ -234,6 +242,33 @@ class MessageController extends Controller
             ->with('success', $message->is_spam
                 ? 'Pesan diterima dan sedang diperiksa.'
                 : 'Pesan berhasil dikirim!');
+    }
+
+    /**
+     * ─── CATAT VIEWS ───
+     * Total views (+1 per pesan yang tampil) selalu bertambah. Views unik per
+     * IP dijamin lewat tabel message_views — IP yang sama cuma dihitung sekali.
+     * Nilai di memori ikut disinkronkan biar halaman yang sama langsung
+     * menampilkan angka terbaru tanpa refresh model.
+     */
+    private function recordViews(iterable $messages, Request $request): void
+    {
+        $ip = SpamDetectionService::clientIp($request);
+
+        foreach ($messages as $message) {
+            $message->increment('views');
+            $message->views += 1;
+
+            $created = MessageView::firstOrCreate([
+                'message_id' => $message->id,
+                'ip_address' => $ip,
+            ])->wasRecentlyCreated;
+
+            if ($created) {
+                $message->increment('unique_views');
+                $message->unique_views += 1;
+            }
+        }
     }
 
     private function extractSpotifyTrackId(string $url): ?string

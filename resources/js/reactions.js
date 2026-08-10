@@ -2,7 +2,7 @@
 // - Chip emoji yang sudah ada tampil langsung, klik = toggle reaksi.
 // - Tombol "+" membuka picker emoji (posisi fixed biar gak ke-clip kartu), pilih emoji = reaksi.
 // - Semua update via POST /messages/{id}/react (JSON), tanpa reload halaman.
-const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏']; // sinkron dengan Message::REACTION_EMOJIS
+const REACTION_EMOJIS = ['👍', '❤️']; // sinkron dengan Message::REACTION_EMOJIS
 
 function closeAllPopovers() {
     document.querySelectorAll('[data-react-popover]').forEach((p) => {

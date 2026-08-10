@@ -36,6 +36,8 @@ class Message extends Model
         'duration_seconds', // int/null — durasi asli lagu penuh (detik)
         'is_pinned',        // bool — pesan di-pin admin (tampil paling atas di feed)
         'pinned_at',        // datetime/null — waktu di-pin (buat urutan antar pin)
+        'views',            // int — total berapa kali pesan ini dilihat
+        'unique_views',     // int — berapa pengunjung unik (per IP) yang melihat pesan ini
     ];
     // ─── KOLOM LAIN YANG GAK PERLU DIISI LANGSUNG ───
     // id → auto increment (primary key)
@@ -44,13 +46,20 @@ class Message extends Model
 
     // ─── EMOJI REAKSI (ala WhatsApp) ───
     // Set emoji yang bisa dipakai pengunjung untuk bereaksi ke pesan.
-    public const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+    public const REACTION_EMOJIS = ['👍', '❤️'];
 
     // ─── REAKSI ───
     // Satu pesan punya banyak reaksi (dari banyak pengunjung).
     public function reactions()
     {
         return $this->hasMany(MessageReaction::class);
+    }
+
+    // ─── VIEWS ───
+    // Satu pesan bisa dilihat banyak pengunjung (unik per IP).
+    public function views()
+    {
+        return $this->hasMany(MessageView::class);
     }
 
     // Hitung jumlah reaksi per emoji, misal ['👍' => 3, '❤️' => 1].

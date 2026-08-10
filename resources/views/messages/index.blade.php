@@ -64,12 +64,12 @@
                         <div id="kelas-dd" class="relative">
                             <button type="button" id="kelas-btn"
                                 class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-left @if($selectedKelas) text-gray-950 @else text-gray-400 @endif hover:border-gray-950 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors cursor-pointer bg-white whitespace-nowrap">
-                                {{ $selectedKelas ?: 'all classes' }}
+                                {{ $selectedKelas ?: 'Semua' }}
                             </button>
                             <ul id="kelas-list"
                                 class="hidden absolute z-20 mt-1 w-full min-w-[180px] max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
                                 <li data-value=""
-                                    class="px-4 py-2.5 text-gray-950 hover:bg-gray-100 cursor-pointer list-none text-sm whitespace-nowrap">all classes</li>
+                                    class="px-4 py-2.5 text-gray-950 hover:bg-gray-100 cursor-pointer list-none text-sm whitespace-nowrap">Semua</li>
                                 @foreach ($kelasList as $k)
                                     <li data-value="{{ $k }}"
                                         class="px-4 py-2.5 text-gray-950 hover:bg-gray-100 cursor-pointer list-none text-sm whitespace-nowrap">{{ $k }}</li>
@@ -118,9 +118,13 @@
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($msg->recipient_name) !!}</p>
                         </div>
-                        {{-- Kelas + waktu (relatif, ex: "XI PPLG 1 • 2 hours ago") --}}
-                        <div class="text-xs text-gray-500 mb-3">
-                            {{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}
+                        {{-- Kelas + waktu + views (relatif, ex: "XI PPLG 1 • 2 hours ago • 👁 12") --}}
+                        <div class="text-xs text-gray-500 mb-3 flex items-center gap-2">
+                            <span>{{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}</span>
+                            <span class="inline-flex items-center gap-0.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                                <span>{{ $msg->views }}</span>
+                            </span>
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
                         <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 80)) !!}</p>
