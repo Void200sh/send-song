@@ -86,6 +86,7 @@
                             <thead>
                                 <tr>
                                     <th>Dari &bull; Pengirim</th>
+                                    <th>IP</th>
                                     <th>Untuk</th>
                                     <th>Kelas</th>
                                     <th>Isi Pesan</th>
@@ -104,6 +105,7 @@
                                                 <span class="text-muted-foreground">Anonim</span>
                                             @endif
                                         </td>
+                                        <td class="text-muted-foreground text-xs">{{ $msg->ip_address ?: '—' }}</td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
                                         <td>{{ $msg->kelas }}</td>
                                         <td class="max-w-36">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}</td>

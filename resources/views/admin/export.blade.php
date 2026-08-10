@@ -59,7 +59,7 @@
                                 <span class="badge badge--primary" style="font-size: 20px;">💬</span>
                                 <div>
                                     <h3 class="card__title" style="font-size: 1rem; margin: 0;">Export Pesan</h3>
-                                    <p class="card__subtitle text-xs">ID, pengirim, penerima, kelas, isi pesan, & info lagu.</p>
+                                    <p class="card__subtitle text-xs">ID, pengirim (nama & IP), penerima, kelas, isi pesan, & info lagu.</p>
                                 </div>
                             </div>
                             <a href="{{ route('admin.export.messages', request()->only(['from', 'to'])) }}"

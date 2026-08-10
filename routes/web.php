@@ -10,14 +10,14 @@ use App\Http\Controllers\SongController;
 // ─── RUTE HALAMAN UTAMA (LANDING PAGE) ───
 Route::get('/', function () {
     // Hitung TOTAL semua pesan di database — buat ditampilkan di stats card "stories told"
-    $totalMessages = Message::count();
+    $totalMessages = Message::where('is_spam', false)->count();
     // Hitung berapa banyak KELAS UNIK yang pernah dikirimin pesan — buat stats "classes reached"
-    $totalKelas = Message::distinct('kelas')->count('kelas');
+    $totalKelas = Message::where('is_spam', false)->distinct('kelas')->count('kelas');
     // Ambil SATU pesan terbaru — buat nampilin "latest story" (waktu relative seperti "2 hours ago")
-    $latestMessage = Message::latest()->first();
+    $latestMessage = Message::where('is_spam', false)->latest()->first();
 
     // Ambil 20 pesan secara ACAK — buat konten marquee (teks jalan) di landing page
-    $marqueeMessages = Message::inRandomOrder()->limit(20)->get();
+    $marqueeMessages = Message::where('is_spam', false)->inRandomOrder()->limit(20)->get();
 
     // Render file welcome.blade.php, kirim 4 data pake compact()
     return view('welcome', compact(
@@ -43,7 +43,9 @@ Route::get('/story', function () {
 Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
 
 // ─── RUTE KIRIM PESAN BARU ───
-Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+Route::post('/messages', [MessageController::class, 'store'])
+    ->middleware('spam-ban')
+    ->name('messages.store');
 
 // ─── RUTE DASHBOARD BAWAAN BREEZE ───
 Route::get('/dashboard', function () {
@@ -60,6 +62,9 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
+    Route::get('/spam', [AdminController::class, 'spam'])->name('spam');
+    Route::post('/spam/delete-group', [AdminController::class, 'destroySpamGroup'])
+        ->name('spam.destroy-group');
     Route::delete('/messages/{message}', [AdminController::class, 'destroy'])->name('messages.destroy');
     Route::post('/messages/{message}/resolve-song', [AdminController::class, 'resolveSong'])->name('messages.resolve-song');
     Route::get('/songs', [AdminController::class, 'songs'])->name('songs');

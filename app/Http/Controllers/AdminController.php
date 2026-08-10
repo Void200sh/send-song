@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\SpamBan;
+use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -17,30 +20,30 @@ class AdminController extends Controller
     public function dashboard()
     {
         // ─── STATISTIK UMUM ───
-        $totalMessages = Message::count();                                  // total semua pesan
-        $todayMessages = Message::whereDate('created_at', Carbon::today())->count(); // pesan masuk hari ini
-        $totalSenders  = Message::whereNotNull('sender_name')->distinct('sender_name')->count('sender_name'); // jumlah pengirim yang kasih nama
-        $totalKelas    = Message::distinct('kelas')->count('kelas');        // jumlah kelas unik
+        $totalMessages = Message::where('is_spam', false)->count();        // total pesan publik
+        $todayMessages = Message::where('is_spam', false)->whereDate('created_at', Carbon::today())->count(); // pesan masuk hari ini
+        $totalSenders  = Message::where('is_spam', false)->whereNotNull('sender_name')->distinct('sender_name')->count('sender_name'); // jumlah pengirim yang kasih nama
+        $totalKelas    = Message::where('is_spam', false)->distinct('kelas')->count('kelas'); // jumlah kelas unik
 
         // ─── STATISTIK LAGU ───
         // Pesan dianggap "punya lagu" kalau ada judul lagu ATAU spotify id ATAU youtube id
-        $songsCount = Message::where(function ($q) {
+        $songsCount = Message::where('is_spam', false)->where(function ($q) {
             $q->whereNotNull('song_title')
                 ->orWhereNotNull('spotify_track_id')
                 ->orWhereNotNull('youtube_video_id');
         })->count();
         $noSongsCount = $totalMessages - $songsCount;
         // Lagu unik (judul + artis) dan artis unik — diproses di PHP biar jalan di MySQL & SQLite
-        $uniqueSongs  = Message::whereNotNull('song_title')
+        $uniqueSongs  = Message::where('is_spam', false)->whereNotNull('song_title')
             ->get(['song_title', 'song_artist'])
             ->unique(fn ($m) => strtolower($m->song_title) . '|' . strtolower($m->song_artist))
             ->count();
-        $uniqueArtists = Message::whereNotNull('song_artist')
+        $uniqueArtists = Message::where('is_spam', false)->whereNotNull('song_artist')
             ->distinct('song_artist')
             ->count('song_artist');
 
         // ─── TOP LAGU (5 LAGU PALING SERING DIKIRIM) ───
-        $topSongs = Message::whereNotNull('song_title')
+        $topSongs = Message::where('is_spam', false)->whereNotNull('song_title')
             ->select('song_title', 'song_artist', 'cover_url')
             ->selectRaw('COUNT(*) as total')
             ->groupBy('song_title', 'song_artist', 'cover_url')
@@ -54,7 +57,7 @@ class AdminController extends Controller
             return Carbon::today()->subDays($i);
         });
 
-        $countsByDate = Message::where('created_at', '>=', Carbon::today()->subDays(13))
+        $countsByDate = Message::where('is_spam', false)->where('created_at', '>=', Carbon::today()->subDays(13))
             ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
             ->groupBy('date')
             ->pluck('total', 'date');
@@ -63,7 +66,7 @@ class AdminController extends Controller
         $chartData   = $days->map(fn ($d) => (int) $countsByDate->get($d->toDateString(), 0));
 
         // ─── KELAS TERPOPULER (TOP 5) ───
-        $topKelas = Message::select('kelas')
+        $topKelas = Message::where('is_spam', false)->select('kelas')
             ->selectRaw('COUNT(*) as total')
             ->groupBy('kelas')
             ->orderByDesc('total')
@@ -71,7 +74,8 @@ class AdminController extends Controller
             ->get();
 
         // ─── PESAN TERBARU (5) ───
-        $latestMessages = Message::latest()->limit(5)->get();
+        $latestMessages = Message::where('is_spam', false)->latest()->limit(5)->get();
+        $spamCount = Message::where('is_spam', true)->count();
 
         return view('admin.dashboard', compact(
             'totalMessages',
@@ -86,7 +90,8 @@ class AdminController extends Controller
             'chartData',
             'topKelas',
             'topSongs',
-            'latestMessages'
+            'latestMessages',
+            'spamCount'
         ));
     }
 
@@ -98,7 +103,7 @@ class AdminController extends Controller
      */
     public function messages(Request $request)
     {
-        $query = Message::query();
+        $query = Message::query()->where('is_spam', false);
 
         // Filter pencarian: cocokin sama nama pengirim ATAU nama penerima
         if ($request->filled('search')) {
@@ -118,9 +123,42 @@ class AdminController extends Controller
             ->onEachSide(1);
 
         // Daftar kelas unik dari database buat dropdown filter
-        $kelasList = Message::distinct('kelas')->orderBy('kelas')->pluck('kelas');
+        $kelasList = Message::where('is_spam', false)->distinct('kelas')->orderBy('kelas')->pluck('kelas');
 
         return view('admin.messages', compact('messages', 'kelasList'));
+    }
+
+    /**
+     * ─── HALAMAN SPAM ───
+     * Menampilkan pengirim spam yang dikelompokkan berdasarkan nama + IP.
+     */
+    public function spam(SpamDetectionService $spam)
+    {
+        $offenders = $spam->topOffenders()->paginate(20)->withQueryString();
+        $bans = SpamBan::query()
+            ->orderByDesc('banned_at')
+            ->paginate(20, ['*'], 'bans_page');
+
+        return view('admin.spam', compact('offenders', 'bans'));
+    }
+
+    /**
+     * Hapus semua pesan milik kombinasi nama + IP setelah konfirmasi admin.
+     */
+    public function destroySpamGroup(Request $request)
+    {
+        $validated = $request->validate([
+            'sender_key' => 'required|string|max:255',
+            'ip_address' => 'required|ip',
+        ]);
+
+        $deleted = DB::transaction(fn () => Message::query()
+            ->where('sender_key', $validated['sender_key'])
+            ->where('ip_address', $validated['ip_address'])
+            ->delete());
+
+        return redirect()->route('admin.spam')
+            ->with('success', "{$deleted} pesan dari identitas tersebut berhasil dihapus.");
     }
 
     /**
@@ -167,6 +205,7 @@ class AdminController extends Controller
     public function songs(Request $request)
     {
         $query = Message::query()
+            ->where('is_spam', false)
             ->whereNotNull('song_title')
             ->select('song_title', 'song_artist', 'cover_url')
             ->selectRaw('COUNT(*) as total, MIN(id) as sample_id, MAX(created_at) as last_used_at')
@@ -205,7 +244,7 @@ class AdminController extends Controller
                 $links->put($key, $cur);
             });
 
-        $kelasList = Message::distinct('kelas')->orderBy('kelas')->pluck('kelas');
+        $kelasList = Message::where('is_spam', false)->distinct('kelas')->orderBy('kelas')->pluck('kelas');
 
         return view('admin.songs', compact('songs', 'links', 'kelasList'));
     }
@@ -217,7 +256,7 @@ class AdminController extends Controller
      */
     public function kelas()
     {
-        $kelas = Message::select('kelas')
+        $kelas = Message::where('is_spam', false)->select('kelas')
             ->selectRaw('COUNT(*) as total')
             ->selectRaw('SUM(CASE WHEN song_title IS NOT NULL OR spotify_track_id IS NOT NULL OR youtube_video_id IS NOT NULL THEN 1 ELSE 0 END) as with_song')
             ->selectRaw('COUNT(DISTINCT song_title) as unique_songs')
@@ -245,7 +284,7 @@ class AdminController extends Controller
      */
     public function exportMessagesCsv(Request $request)
     {
-        $query = Message::query();
+        $query = Message::query()->where('is_spam', false);
 
         if ($request->filled('from') && $request->filled('to')) {
             $query->whereBetween('created_at', [$request->from . ' 00:00:00', $request->to . ' 23:59:59']);
@@ -253,11 +292,12 @@ class AdminController extends Controller
 
         $messages = $query->orderByDesc('created_at')->get();
 
-        $rows = [['ID', 'Dari', 'Untuk', 'Kelas', 'Pesan', 'Judul Lagu', 'Artis', 'Spotify ID', 'YouTube ID', 'Waktu Kirim']];
+        $rows = [['ID', 'Dari', 'IP', 'Untuk', 'Kelas', 'Pesan', 'Judul Lagu', 'Artis', 'Spotify ID', 'YouTube ID', 'Waktu Kirim']];
         foreach ($messages as $m) {
             $rows[] = [
                 $m->id,
                 $m->sender_name ?: 'Anonim',
+                $m->ip_address ?: '',
                 $m->recipient_name,
                 $m->kelas,
                 $m->message,
@@ -278,7 +318,7 @@ class AdminController extends Controller
      */
     public function exportSongsCsv(Request $request)
     {
-        $songs = Message::whereNotNull('song_title')
+        $songs = Message::where('is_spam', false)->whereNotNull('song_title')
             ->select('song_title', 'song_artist', 'cover_url')
             ->selectRaw('COUNT(*) as total, MAX(created_at) as last_used_at')
             ->groupBy('song_title', 'song_artist', 'cover_url')

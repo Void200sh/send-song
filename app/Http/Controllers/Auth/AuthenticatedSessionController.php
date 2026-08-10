@@ -18,8 +18,8 @@ class AuthenticatedSessionController extends Controller
     public function create(): View
     {
         // Statistik publik buat panel brand di kiri halaman login (sama kayak di landing page)
-        $totalMessages = Message::count();
-        $totalKelas = Message::distinct('kelas')->count('kelas');
+        $totalMessages = Message::where('is_spam', false)->count();
+        $totalKelas = Message::where('is_spam', false)->distinct('kelas')->count('kelas');
 
         return view('auth.login', compact('totalMessages', 'totalKelas'));
     }
