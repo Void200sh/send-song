@@ -13,15 +13,15 @@ class SpamDetectionService
     public const BAN_THRESHOLD = 10;
 
     /**
-     * Return request-derived identity data without storing raw name as a grouping key.
+     * ─── IP CLIENT (SATU-SATUNYA SUMBER KEBENARAN) ───
+     * Prioritas header X-Forwarded-For (buat server di belakang proxy/CDN seperti Cloudflare —
+     * bisa berisi daftar IP dipisah koma, ambil yang paling kiri = client asli).
+     * Kalau gak ada / kosong / formatnya gak valid, fallback ke IP yang terdeteksi Laravel.
+     * Dipakai di sini (identity) DAN di reaksi emoji supaya konsisten — kalau beda,
+     * semua pengunjung di belakang proxy yang sama bakal dianggap 1 orang.
      */
-    public function identity(Request $request): array
+    public static function clientIp(Request $request): string
     {
-        $senderKey = $this->normaliseSender($request->input('sender_name'));
-
-        // IP asli: prioritas header X-Forwarded-For (buat server di belakang proxy/CDN seperti
-        // Cloudflare — bisa berisi daftar IP dipisah koma, ambil yang paling kiri = client asli).
-        // Kalau gak ada / kosong / formatnya gak valid, fallback ke IP yang terdeteksi Laravel.
         $ip = trim((string) $request->header('X-Forwarded-For'));
         if ($ip !== '' && str_contains($ip, ',')) {
             $ip = trim(explode(',', $ip)[0]);
@@ -29,6 +29,18 @@ class SpamDetectionService
         if ($ip === '' || ! filter_var($ip, FILTER_VALIDATE_IP)) {
             $ip = (string) $request->ip();
         }
+
+        return $ip;
+    }
+
+    /**
+     * Return request-derived identity data without storing raw name as a grouping key.
+     */
+    public function identity(Request $request): array
+    {
+        $senderKey = $this->normaliseSender($request->input('sender_name'));
+
+        $ip = self::clientIp($request);
 
         return [
             'sender_key' => $senderKey,

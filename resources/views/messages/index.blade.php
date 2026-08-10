@@ -6,8 +6,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Browse - SkanidaSong SMK</title>
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+    {{-- Preconnect ke fonts.bunny.net biar loading font lebih cepet --}}
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
+    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -104,6 +109,10 @@
                     <a href="{{ route('messages.show', $msg) }}" data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
                         class="block relative overflow-hidden border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm theme-{{ $msg->theme ?: 'classic' }} cursor-pointer">
                         @include('partials.theme-decor', ['theme' => $msg->theme])
+                        {{-- Badge pin (dipasang admin) — tampil di pojok kanan atas kartu --}}
+                        @if ($msg->is_pinned)
+                            <span class="absolute top-3 right-3 flex items-center gap-1 text-[11px] font-semibold text-white bg-[#171717]/90 rounded-full px-2 py-1 shadow-sm">📌 pinned</span>
+                        @endif
                         {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
@@ -115,8 +124,9 @@
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
                         <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 80)) !!}</p>
-                        {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
-                        @if ($msg->youtube_video_id)
+                        {{-- Blok lagu: judul & artis SELALU tampil kalau ada lagu. Player YouTube kalau ada id-nya, link Spotify kalau ada. --}}
+                        @if ($msg->song_title || $msg->youtube_video_id || $msg->spotify_track_id)
+                            @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
                                 data-clip-start="{{ $msg->clip_start_seconds }}"
                                 data-clip-end="{{ $msg->clip_end_seconds }}"
@@ -152,14 +162,34 @@
                                     video tidak tersedia — buka di Spotify
                                 </button>
                             </div>
-                        @elseif ($msg->spotify_track_id)
-                            {{-- Fallback: tombol buka Spotify kalo gak ada YouTube ID (data lama) — button biar gak nested <a> --}}
-                            <button type="button" data-open-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
-                                class="inline-flex items-center gap-1.5 text-xs text-green-600 hover:underline mt-1 cursor-pointer bg-transparent border-0 p-0 m-0 text-left">
-                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.6 11.6a.5.5 0 0 1-.7.2c-1.9-1.2-4.4-1.5-7.2-.8a.5.5 0 0 1-.2-1c3-.7 5.8-.4 7.9 1a.5.5 0 0 1 .2.6zm1-2.2a.6.6 0 0 1-.8.3c-2.2-1.4-5.6-1.7-8.2-1a.6.6 0 0 1-.4-1.2c3-.8 6.8-.5 9.2 1a.6.6 0 0 1 .2.9zm.1-2.3c-2.7-1.6-7-1.7-9.6-1a.7.7 0 0 1-.4-1.4c3-1 7.5-.8 10.5 1a.7.7 0 0 1-.5 1.3z"/></svg>
-                                buka lagu di Spotify
-                            </button>
+                            @else
+                                {{-- Lagu tanpa YouTube ID: judul & artis tetap tampil + tombol Spotify kalau ada id-nya --}}
+                                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                                    <div class="flex items-center gap-3">
+                                        @if ($msg->cover_url)
+                                            <img src="{{ $msg->cover_url }}" class="w-11 h-11 rounded-lg object-cover" alt="cover">
+                                        @endif
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $msg->song_title }}</p>
+                                            @if ($msg->song_artist)
+                                                <p class="text-xs text-gray-500 truncate">{{ $msg->song_artist }}</p>
+                                            @endif
+                                        </div>
+                                        @if ($msg->spotify_track_id)
+                                            <button type="button" data-open-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"
+                                                class="shrink-0 inline-flex items-center gap-1.5 text-xs text-green-600 hover:underline cursor-pointer bg-transparent border-0 p-0 m-0 text-left"
+                                                title="Buka lagu di Spotify">
+                                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.6 11.6a.5.5 0 0 1-.7.2c-1.9-1.2-4.4-1.5-7.2-.8a.5.5 0 0 1-.2-1c3-.7 5.8-.4 7.9 1a.5.5 0 0 1 .2.6zm1-2.2a.6.6 0 0 1-.8.3c-2.2-1.4-5.6-1.7-8.2-1a.6.6 0 0 1-.4-1.2c3-.8 6.8-.5 9.2 1a.6.6 0 0 1 .2.9zm.1-2.3c-2.7-1.6-7-1.7-9.6-1a.7.7 0 0 1-.4-1.4c3-1 7.5-.8 10.5 1a.7.7 0 0 1-.5 1.3z"/></svg>
+                                                buka
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         @endif
+
+                        {{-- Reaksi emoji ala WhatsApp — tombol di dalam <a> aman: klik button tidak navigasi --}}
+                        @include('partials.reactions', ['msg' => $msg, 'mine' => $myReactions->get($msg->id, collect())->all()])
                     </a>
                 @endforeach
             </div>

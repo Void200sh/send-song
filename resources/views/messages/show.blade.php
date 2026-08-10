@@ -6,8 +6,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Story - SkanidaSong SMK</title>
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+    {{-- Preconnect ke fonts.bunny.net biar loading font lebih cepet --}}
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
+    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -50,8 +55,9 @@
             {{-- Isi pesan lengkap (font Reenie Beanie, sama seperti from/to) --}}
             <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{!! \App\Support\EmojiText::small($message->message) !!}</p>
 
-            {{-- Player penuh kalo ada YouTube ID --}}
-            @if ($message->youtube_video_id)
+            {{-- Blok lagu: judul & artis SELALU tampil kalau ada lagu. Player YouTube kalau ada id-nya, link Spotify kalau ada. --}}
+            @if ($message->song_title || $message->youtube_video_id || $message->spotify_track_id)
+                @if ($message->youtube_video_id)
                 <div data-player-card data-video-id="{{ $message->youtube_video_id }}"
                     data-clip-start="{{ $message->clip_start_seconds }}"
                     data-clip-end="{{ $message->clip_end_seconds }}"
@@ -84,15 +90,34 @@
                         video tidak tersedia — buka di Spotify
                     </a>
                 </div>
-            @elseif ($message->spotify_track_id)
-                {{-- Fallback: link Spotify kalo gak ada YouTube ID --}}
-                <a href="https://open.spotify.com/track/{{ $message->spotify_track_id }}" target="_blank"
-                    class="inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.6 11.6a.5.5 0 0 1-.7.2c-1.9-1.2-4.4-1.5-7.2-.8a.5.5 0 0 1-.2-1c3-.7 5.8-.4 7.9 1a.5.5 0 0 1 .2.6zm1-2.2a.6.6 0 0 1-.8.3c-2.2-1.4-5.6-1.7-8.2-1a.6.6 0 0 1-.4-1.2c3-.8 6.8-.5 9.2 1a.6.6 0 0 1 .2.9zm.1-2.3c-2.7-1.6-7-1.7-9.6-1a.7.7 0 0 1-.4-1.4c3-1 7.5-.8 10.5 1a.7.7 0 0 1-.5 1.3z"/></svg>
-                    buka lagu di Spotify
-                </a>
+                @else
+                    {{-- Lagu tanpa YouTube ID: judul & artis tetap tampil + link Spotify kalau ada id-nya --}}
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <div class="flex items-center gap-3">
+                            @if ($message->cover_url)
+                                <img src="{{ $message->cover_url }}" class="w-12 h-12 rounded-lg object-cover" alt="cover">
+                            @endif
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $message->song_title }}</p>
+                                @if ($message->song_artist)
+                                    <p class="text-xs text-gray-500 truncate">{{ $message->song_artist }}</p>
+                                @endif
+                            </div>
+                            @if ($message->spotify_track_id)
+                                <a href="https://open.spotify.com/track/{{ $message->spotify_track_id }}" target="_blank"
+                                    class="shrink-0 inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.6 11.6a.5.5 0 0 1-.7.2c-1.9-1.2-4.4-1.5-7.2-.8a.5.5 0 0 1-.2-1c3-.7 5.8-.4 7.9 1a.5.5 0 0 1 .2.6zm1-2.2a.6.6 0 0 1-.8.3c-2.2-1.4-5.6-1.7-8.2-1a.6.6 0 0 1-.4-1.2c3-.8 6.8-.5 9.2 1a.6.6 0 0 1 .2.9zm.1-2.3c-2.7-1.6-7-1.7-9.6-1a.7.7 0 0 1-.4-1.4c3-1 7.5-.8 10.5 1a.7.7 0 0 1-.5 1.3z"/></svg>
+                                    buka
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             @endif
         </div>
+
+        {{-- Reaksi emoji ala WhatsApp --}}
+        @include('partials.reactions', ['msg' => $message, 'mine' => $myReactions])
 
         {{-- Tombol unduh pesan jadi gambar story 9:16 --}}
         <div class="mt-4">

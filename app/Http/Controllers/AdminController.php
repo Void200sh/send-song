@@ -119,13 +119,32 @@ class AdminController extends Controller
             $query->where('kelas', $request->kelas);
         }
 
-        $messages = $query->latest()->paginate(15)->withQueryString()
+        $messages = $query->pinnedFirst()->paginate(15)->withQueryString()
             ->onEachSide(1);
 
         // Daftar kelas unik dari database buat dropdown filter
         $kelasList = Message::where('is_spam', false)->distinct('kelas')->orderBy('kelas')->pluck('kelas');
 
         return view('admin.messages', compact('messages', 'kelasList'));
+    }
+
+    /**
+     * ─── PIN / LEPAS PIN PESAN ───
+     * Toggle is_pinned: pesan ter-pin tampil paling atas di feed publik.
+     * pinned_at diisi saat di-pin, dikosongkan saat dilepas.
+     */
+    public function togglePin(Message $message)
+    {
+        $pinned = ! $message->is_pinned;
+
+        $message->update([
+            'is_pinned' => $pinned,
+            'pinned_at' => $pinned ? now() : null,
+        ]);
+
+        return back()->with('success', $pinned
+            ? 'Pesan berhasil di-pin — tampil paling atas di halaman browse.'
+            : 'Pin pesan dilepas.');
     }
 
     /**

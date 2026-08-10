@@ -106,7 +106,12 @@
                                             @endif
                                         </td>
                                         <td class="text-muted-foreground text-xs">{{ $msg->ip_address ?: '—' }}</td>
-                                        <td class="font-medium">{{ $msg->recipient_name }}</td>
+                                        <td class="font-medium">
+                                            {{ $msg->recipient_name }}
+                                            @if ($msg->is_pinned)
+                                                <span class="badge badge--primary ms-1" title="Pesan di-pin">📌 Pin</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $msg->kelas }}</td>
                                         <td class="max-w-36">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}</td>
                                         <td>
@@ -164,19 +169,37 @@
                                         </td>
                                         <td class="text-muted-foreground text-xs">{{ $msg->created_at->format('d M Y H:i') }}</td>
                                         <td class="text-end">
-                                            <form method="POST" action="{{ route('admin.messages.destroy', $msg) }}"
-                                                onsubmit="return confirm('Yakin mau hapus pesan ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="button button--danger button--sm button--icon-only"
-                                                    aria-label="Hapus pesan">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
-                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                                                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                        <path d="M4 7h16M9 7V4h6v3m2 0l-1 13a2 2 0 01-2 2h-4a2 2 0 01-2-2L7 7" />
-                                                    </svg>
-                                                </button>
-                                            </form>
+                                            <div class="flex items-center justify-end gap-2">
+                                                {{-- Tombol pin/lepas pin — pesan ter-pin tampil paling atas di feed publik --}}
+                                                <form method="POST" action="{{ route('admin.messages.pin-toggle', $msg) }}">
+                                                    @csrf
+                                                    <button type="submit"
+                                                        class="button button--sm button--icon-only {{ $msg->is_pinned ? 'button--primary' : 'button--outline' }}"
+                                                        aria-label="{{ $msg->is_pinned ? 'Lepas pin pesan' : 'Pin pesan' }}"
+                                                        title="{{ $msg->is_pinned ? 'Lepas pin — pesan kembali ke urutan biasa' : 'Pin — tampil paling atas di halaman browse' }}">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                            <path d="M12 17v5" />
+                                                            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                                {{-- Tombol hapus pesan --}}
+                                                <form method="POST" action="{{ route('admin.messages.destroy', $msg) }}"
+                                                    onsubmit="return confirm('Yakin mau hapus pesan ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="button button--danger button--sm button--icon-only"
+                                                        aria-label="Hapus pesan">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                            <path d="M4 7h16M9 7V4h6v3m2 0l-1 13a2 2 0 01-2 2h-4a2 2 0 01-2-2L7 7" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach

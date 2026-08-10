@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\YouTubeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,5 +39,49 @@ class MessageStoreTest extends TestCase
             'recipient_name' => 'Rina',
             'ip_address' => '127.0.0.1',
         ]);
+    }
+
+    public function test_store_resolves_youtube_server_side_when_client_was_too_fast(): void
+    {
+        // Simulasi user submit SEBELUM resolve client selesai: kirim judul lagu
+        // tanpa youtube_video_id → server harus resolve sendiri biar lagunya muncul.
+        $this->mock(YouTubeService::class, function ($mock) {
+            $mock->shouldReceive('searchAudio')
+                ->once()
+                ->with('Sempurna', 'Andra And The Backbone')
+                ->andReturn(['youtube_id' => 'abc123yt', 'title' => 'x', 'score' => 7]);
+        });
+
+        $this->post('/messages', [
+            'recipient_name' => 'Rina',
+            'kelas' => 'XI PPLG 1',
+            'message' => 'halo',
+            'song_title' => 'Sempurna',
+            'song_artist' => 'Andra And The Backbone',
+        ]);
+
+        $this->assertDatabaseHas('messages', [
+            'recipient_name' => 'Rina',
+            'song_title' => 'Sempurna',
+            'youtube_video_id' => 'abc123yt',
+        ]);
+    }
+
+    public function test_feed_shows_song_title_even_without_youtube_or_spotify_id(): void
+    {
+        // Pesan lama/aneh yang cuma punya judul lagu (tanpa id YouTube & Spotify)
+        // tetap harus menampilkan judul + artis di feed, biar lagunya gak "hilang".
+        \App\Models\Message::create([
+            'recipient_name' => 'Rina',
+            'kelas' => 'XI PPLG 1',
+            'message' => 'halo',
+            'song_title' => 'Lagu Tanpa ID',
+            'song_artist' => 'Artis X',
+        ]);
+
+        $this->get(route('messages.index'))
+            ->assertOk()
+            ->assertSee('Lagu Tanpa ID')
+            ->assertSee('Artis X');
     }
 }

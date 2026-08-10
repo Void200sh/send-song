@@ -5,76 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── FONT LOKAL (SELF-HOST) ─── */
-/* Font di-host sendiri di /fonts — tanpa CDN eksternal, jadi:
-   1) selalu termuat cepat walau jaringan ke fonts.bunny.net mati,
-   2) html-to-image bisa embed ke PNG tanpa kendala CORS/CDN. */
-@font-face {
-    font-family: 'Reenie Beanie';
-    src: url('/fonts/reenie-beanie-400.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Plus Jakarta Sans';
-    src: url('/fonts/plus-jakarta-sans-400.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Plus Jakarta Sans';
-    src: url('/fonts/plus-jakarta-sans-500.woff2') format('woff2');
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Plus Jakarta Sans';
-    src: url('/fonts/plus-jakarta-sans-600.woff2') format('woff2');
-    font-weight: 600;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Plus Jakarta Sans';
-    src: url('/fonts/plus-jakarta-sans-700.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Figtree';
-    src: url('/fonts/figtree-400.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Figtree';
-    src: url('/fonts/figtree-500.woff2') format('woff2');
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Figtree';
-    src: url('/fonts/figtree-600.woff2') format('woff2');
-    font-weight: 600;
-    font-style: normal;
-    font-display: swap;
-}
-
 /* ─── FONT UTAMA ─── */
-/* Font sans-serif utama: Plus Jakarta Sans (self-host, bukan Google Fonts lagi) */
+/* Font sans-serif utama: Plus Jakarta Sans — dimuat via CDN fonts.bunny.net (lihat <head> view) */
 .font-sans {
     font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

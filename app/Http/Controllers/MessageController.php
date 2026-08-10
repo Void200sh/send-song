@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\MessageReaction;
 use App\Services\SpamDetectionService;
+use App\Services\YouTubeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -43,11 +45,20 @@ class MessageController extends Controller
             $query->where('kelas', $request->kelas);
         }
 
-        $messages = $query->latest()->paginate(12);
+        $messages = $query->pinnedFirst()->paginate(12);
+
+        // Load reaksi + emoji yang sudah direaksikan pengunjung ini (biar gak N+1)
+        $messages->load('reactions');
+        $myReactions = MessageReaction::where('ip_address', SpamDetectionService::clientIp($request))
+            ->whereIn('message_id', $messages->pluck('id'))
+            ->get()
+            ->groupBy('message_id')
+            ->map->pluck('emoji');
+
         $selectedKelas = $request->kelas;
         $search = $request->search;
 
-        return view('messages.index', compact('messages', 'kelasList', 'selectedKelas', 'search'));
+        return view('messages.index', compact('messages', 'kelasList', 'selectedKelas', 'search', 'myReactions'));
     }
 
     /**
@@ -57,7 +68,62 @@ class MessageController extends Controller
     {
         abort_if($message->is_spam, 404);
 
-        return view('messages.show', compact('message'));
+        // Reaksi: load sekalian + emoji yang udah direaksikan pengunjung ini
+        $message->load('reactions');
+        $myReactions = $message->reactions
+            ->where('ip_address', SpamDetectionService::clientIp(request()))
+            ->pluck('emoji')
+            ->all();
+
+        return view('messages.show', compact('message', 'myReactions'));
+    }
+
+    /**
+     * ─── METHOD REACT — TAMBAH/BATAL REAKSI EMOJI (toggle, ala WhatsApp) ───
+     * Pengunjung boleh kasih maksimal satu reaksi per emoji per pesan
+     * (dilacak via IP). Klik emoji yang sama lagi = batal. Balas JSON biar
+     * frontend bisa update jumlah reaksi tanpa reload halaman.
+     */
+    public function react(Request $request, Message $message)
+    {
+        abort_if($message->is_spam, 404);
+
+        $validated = $request->validate([
+            'emoji' => ['required', 'string', Rule::in(Message::REACTION_EMOJIS)],
+        ]);
+
+        $emoji = $validated['emoji'];
+        $ip = SpamDetectionService::clientIp($request);
+
+        $existing = MessageReaction::where('message_id', $message->id)
+            ->where('emoji', $emoji)
+            ->where('ip_address', $ip)
+            ->first();
+
+        DB::transaction(function () use ($existing, $message, $emoji, $ip) {
+            if ($existing) {
+                $existing->delete();
+            } else {
+                MessageReaction::create([
+                    'message_id' => $message->id,
+                    'emoji' => $emoji,
+                    'ip_address' => $ip,
+                ]);
+            }
+        });
+
+        // Hitung ulang jumlah reaksi per emoji buat pesan ini
+        $counts = MessageReaction::where('message_id', $message->id)
+            ->select('emoji')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('emoji')
+            ->pluck('total', 'emoji');
+
+        return response()->json([
+            'counts' => $counts,
+            // Emoji yang sekarang aktif untuk pengunjung ini (null kalau semua batal)
+            'active' => $existing ? null : $emoji,
+        ]);
     }
 
     /**
@@ -130,6 +196,28 @@ class MessageController extends Controller
             return back()
                 ->withErrors(['message' => 'Pesan dengan isi yang sama sudah terkirim. Silakan coba lagi beberapa menit kemudian.'])
                 ->withInput();
+        }
+
+        // ─── JARING PENGAMAN RESOLVE YOUTUBE ───
+        // Tombol submit aktif begitu lagu dipilih, jadi user bisa kirim SEBELUM resolve
+        // client selesai → youtube_video_id kosong → lagu gak muncul di feed.
+        // Coba resolve di server biar lagunya tetap tampil. Kalau gagal, admin bisa
+        // resolve manual lewat tombol "resolve" di halaman admin.
+        // Skip kalau pesan spam: gak tampil di feed mana pun, jadi percuma buang kuota API.
+        if (($validated['song_title'] ?? null)
+            && empty($validated['youtube_video_id'])
+            && ! $spamAssessment['is_spam']) {
+            try {
+                $match = app(YouTubeService::class)->searchAudio(
+                    $validated['song_title'],
+                    (string) ($validated['song_artist'] ?? '')
+                );
+                if (! empty($match['youtube_id'])) {
+                    $validated['youtube_video_id'] = $match['youtube_id'];
+                }
+            } catch (\Throwable) {
+                // resolve gagal — biarkan null (admin bisa resolve manual)
+            }
         }
 
         $validated = array_merge($validated, $identity, [

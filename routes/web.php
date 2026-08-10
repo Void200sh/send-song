@@ -47,6 +47,12 @@ Route::post('/messages', [MessageController::class, 'store'])
     ->middleware('spam-ban')
     ->name('messages.store');
 
+// ─── RUTE REAKSI EMOJI (toggle, ala WhatsApp) ───
+// throttle: batasi 30 request/menit per IP biar jumlah reaksi gak bisa digoreng bebas.
+Route::post('/messages/{message}/react', [MessageController::class, 'react'])
+    ->middleware('throttle:30,1')
+    ->name('messages.react');
+
 // ─── RUTE DASHBOARD BAWAAN BREEZE ───
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -67,6 +73,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         ->name('spam.destroy-group');
     Route::delete('/messages/{message}', [AdminController::class, 'destroy'])->name('messages.destroy');
     Route::post('/messages/{message}/resolve-song', [AdminController::class, 'resolveSong'])->name('messages.resolve-song');
+    Route::post('/messages/{message}/pin-toggle', [AdminController::class, 'togglePin'])->name('messages.pin-toggle');
     Route::get('/songs', [AdminController::class, 'songs'])->name('songs');
     Route::get('/kelas', [AdminController::class, 'kelas'])->name('kelas');
     Route::get('/export', [AdminController::class, 'export'])->name('export');

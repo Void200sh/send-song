@@ -11,7 +11,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SkanidaSong - SMK</title>
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
-    {{-- Font self-host di /fonts (tanpa CDN eksternal) — lihat resources/css/app.css --}}
+    {{-- Preconnect ke fonts.bunny.net biar loading font lebih cepet --}}
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
+    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 

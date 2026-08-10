@@ -34,11 +34,31 @@ class Message extends Model
         'clip_start_seconds', // int/null — detik mulai clip lagu (null = full lagu)
         'clip_end_seconds', // int/null — detik selesai clip lagu (null = full lagu)
         'duration_seconds', // int/null — durasi asli lagu penuh (detik)
+        'is_pinned',        // bool — pesan di-pin admin (tampil paling atas di feed)
+        'pinned_at',        // datetime/null — waktu di-pin (buat urutan antar pin)
     ];
     // ─── KOLOM LAIN YANG GAK PERLU DIISI LANGSUNG ───
     // id → auto increment (primary key)
     // created_at → diisi otomatis sama Laravel
     // updated_at → diisi otomatis sama Laravel
+
+    // ─── EMOJI REAKSI (ala WhatsApp) ───
+    // Set emoji yang bisa dipakai pengunjung untuk bereaksi ke pesan.
+    public const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+    // ─── REAKSI ───
+    // Satu pesan punya banyak reaksi (dari banyak pengunjung).
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
+    // Hitung jumlah reaksi per emoji, misal ['👍' => 3, '❤️' => 1].
+    // Butuh relasi reactions() sudah di-load (eager loading) biar gak N+1 query.
+    public function reactionCounts(): array
+    {
+        return $this->reactions->countBy('emoji')->toArray();
+    }
 
     // ─── TEMA KARTU ───
     // Key tema valid untuk kartu pesan (gaya chat TikTok: gradasi pastel + dekorasi emoji).
@@ -61,5 +81,16 @@ class Message extends Model
         }
 
         return sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
+
+    // ─── SORTIR FEED: PESAN TER-PIN PALING ATAS ───
+    // is_pinned DESC (pin di atas), lalu pinned_at DESC (pin terbaru di atas),
+    // lalu created_at DESC (pesan baru di atas) untuk sisanya.
+    public function scopePinnedFirst($query)
+    {
+        return $query
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('pinned_at')
+            ->latest();
     }
 }
