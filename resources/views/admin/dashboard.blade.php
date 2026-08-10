@@ -9,7 +9,7 @@
         <div class="page__header">
             <div class="page__headline">
                 <h1 class="page__title font-reenie">
-                    Halo, <span>{{ auth()->user()->name }}</span> 👋
+                    Halo, <span>{{ auth()->user()->name }}</span> <span style="font-size:.65em">👋</span>
                 </h1>
                 <p class="page__description">Ringkasan pesan yang masuk ke SkanidaSong SMK.</p>
             </div>
@@ -289,10 +289,10 @@
                                                 <span class="badge badge--soft">Anonim</span>
                                             @endif
                                         </td>
-                                        <td class="text-muted-foreground text-xs">{{ $msg->sender_ip ?: '—' }}</td>
+                                        <td class="text-muted-foreground text-xs">{{ $msg->ip_address ?: '—' }}</td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
                                         <td>{{ $msg->kelas }}</td>
-                                        <td class="max-w-36">{{ \Illuminate\Support\Str::limit($msg->message, 40) }}</td>
+                                        <td class="max-w-36">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}</td>
                                         <td class="text-muted-foreground text-xs">{{ $msg->created_at->diffForHumans() }}</td>
                                     </tr>
                                 @endforeach

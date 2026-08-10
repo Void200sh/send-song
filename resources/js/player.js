@@ -3,6 +3,8 @@ let player = null;
 let activeCard = null;
 let pendingCard = null;
 let apiReady = false;
+let playerReady = false;   // onReady player YouTube sudah kepanggil
+let currentVideoId = null; // video yang lagi dimuat di player (buat deteksi pre-warm)
 let pollTimer = null;
 let seeking = false;
 
@@ -10,6 +12,18 @@ const fmt = (sec) => {
     if (!Number.isFinite(sec)) return '0:00';
     return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 };
+
+// Klip custom dari data-clip-start / data-clip-end (kosong = full lagu)
+// Return { start, end } atau null
+function clipFor(card) {
+    if (!card) return null;
+    const start = parseInt(card.dataset.clipStart, 10);
+    const end = parseInt(card.dataset.clipEnd, 10);
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+        return { start, end };
+    }
+    return null;
+}
 
 let apiScriptLoading = false;
 
@@ -38,7 +52,21 @@ function startPolling() {
         if (!player || seeking || !activeCard) return;
         const cur = player.getCurrentTime();
         const dur = player.getDuration();
-        if (dur > 0) {
+        const clip = clipFor(activeCard);
+        if (clip) {
+            // Klip [start, end]: lewat batas → loop balik ke start
+            if (cur >= clip.end) {
+                player.seekTo(clip.start, true);
+                return;
+            }
+            if (cur < clip.start) {
+                player.seekTo(clip.start, true);
+                return;
+            }
+            const span = clip.end - clip.start;
+            activeCard.querySelector('[data-progress]').style.width = `${((cur - clip.start) / span) * 100}%`;
+            activeCard.querySelector('[data-duration]').textContent = fmt(span);
+        } else if (dur > 0) {
             activeCard.querySelector('[data-progress]').style.width = `${(cur / dur) * 100}%`;
         }
         activeCard.querySelector('[data-current]').textContent = fmt(cur);
@@ -52,10 +80,24 @@ function stopPolling() {
     }
 }
 
+// Kembalikan UI kartu ke keadaan "belum diputar" (ikon play, progress & waktu nol)
+// Dipanggil buat kartu yang TIDAK aktif lagi, biar gak kelihatan "lagi nyanyi" semua
+function resetCardUi(card) {
+    if (!card) return;
+    card.querySelector('[data-icon-play]')?.classList.remove('hidden');
+    card.querySelector('[data-icon-pause]')?.classList.add('hidden');
+    const progress = card.querySelector('[data-progress]');
+    if (progress) progress.style.width = '0%';
+    const current = card.querySelector('[data-current]');
+    if (current) current.textContent = '0:00';
+}
+
 function setActiveCard(card) {
     document.querySelectorAll('[data-player-card]').forEach((c) => {
         c.classList.toggle('ring-2', c === card);
         c.classList.toggle('ring-gray-900', c === card);
+        // Reset semua kartu lain biar cuma SATU lagu yang tampak/sedang diputar
+        if (c !== card) resetCardUi(c);
     });
     activeCard = card;
 }
@@ -66,9 +108,10 @@ function setPlayingState(playing) {
     activeCard.querySelector('[data-icon-pause]').classList.toggle('hidden', !playing);
 }
 
-function createPlayer(card) {
+function createPlayer(card, autoplay = true) {
+    currentVideoId = card.dataset.videoId;
     player = new YT.Player('yt-audio-host', {
-        videoId: card.dataset.videoId,
+        videoId: currentVideoId,
         width: 1,
         height: 1,
         playerVars: {
@@ -81,8 +124,26 @@ function createPlayer(card) {
         },
         events: {
             onReady: () => {
-                activeCard.querySelector('[data-duration]').textContent = fmt(player.getDuration());
-                player.playVideo();
+                playerReady = true;
+                // Pre-warm (autoplay=false) pasangnya saat aktifCard masih null → pakai kartu ini
+                const cardRef = activeCard || card;
+                const clip = clipFor(cardRef);
+                const durEl = cardRef?.querySelector('[data-duration]');
+                if (clip) {
+                    if (durEl) durEl.textContent = fmt(clip.end - clip.start);
+                    player.seekTo(clip.start, true);
+                } else if (durEl) {
+                    durEl.textContent = fmt(player.getDuration());
+                }
+
+                // Klik yang masuk pas player masih init → jalanin sekarang (paling prioritas)
+                if (pendingCard) {
+                    const pending = pendingCard;
+                    pendingCard = null;
+                    playCard(pending);
+                } else if (autoplay) {
+                    player.playVideo();
+                }
             },
             onStateChange: (e) => {
                 if (e.data === YT.PlayerState.PLAYING) {
@@ -116,7 +177,7 @@ async function ensureApiReady() {
 
 function toggleCard(card) {
     // Klik tombol di kartu yang SAMA dengan yang sedang aktif → toggle play/pause
-    if (player && activeCard === card) {
+    if (player && activeCard === card && playerReady) {
         const state = player.getPlayerState();
 
         if (state === YT.PlayerState.PLAYING) {
@@ -130,13 +191,37 @@ function toggleCard(card) {
         return;
     }
 
-    // Kartu yang diklik BEDA dari yang aktif → ganti lagu + autoplay
+    // Player masih init (mis. lagi pre-warm) → simpan dulu, diputar begitu siap
+    if (player && !playerReady) {
+        pendingCard = card;
+        return;
+    }
+
+    playCard(card);
+}
+
+// Mainkan satu kartu: jadikan aktif + muat videonya (kalo beda) + putar
+function playCard(card) {
     setActiveCard(card);
     card.querySelector('[data-fallback]')?.classList.add('hidden');
 
     if (player) {
-        player.loadVideoById(card.dataset.videoId);
-        player.playVideo();
+        if (currentVideoId === card.dataset.videoId) {
+            // Video yang sama udah siap dimuat (pre-warm / baru diputar) → langsung jalan, instan
+            player.playVideo();
+        } else {
+            // Lagu beda → muat & putar. Iframe yang sama otomatis matiin audio sebelumnya,
+            // gak perlu stopVideo() — itu cuma nambah jeda unload → reload.
+            // Klip: mulai langsung dari detik awal, gak nunggu polling (500ms) lompat ke sana.
+            const clip = clipFor(card);
+            if (clip) {
+                player.loadVideoById(card.dataset.videoId, clip.start);
+            } else {
+                player.loadVideoById(card.dataset.videoId);
+            }
+            currentVideoId = card.dataset.videoId;
+            player.playVideo();
+        }
     } else {
         createPlayer(card);
     }
@@ -211,26 +296,116 @@ document.addEventListener('change', (e) => {
     const slider = e.target.closest('[data-seekbar]');
     if (!slider || !player) return;
     const dur = player.getDuration();
-    if (dur > 0) {
-        player.seekTo((slider.value / slider.max) * dur, true);
+    const clip = clipFor(activeCard);
+    const cap = clip ? clip.end - clip.start : dur;
+    if (cap > 0) {
+        const at = clip ? clip.start + (slider.value / slider.max) * cap : (slider.value / slider.max) * cap;
+        player.seekTo(at, true);
     }
     setTimeout(() => {
         seeking = false;
     }, 100);
 });
 
-// Host iframe tersembunyi (1×1px, opacity 0, di luar layar)
-window.addEventListener('load', () => {
+// ── INIT PLAYER: host iframe tersembunyi + muat API SEPAKET (gak nunggu window.load) ──
+// Module script jalan SETELAH DOM selesai di-parse, jadi body udah pasti ada.
+// API YouTube mulai didownload bareng aset lain — bukan nunggu semua gambar/font selesai.
+(async function initPlayer() {
     const host = document.createElement('div');
     host.id = 'yt-audio-host';
     host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px;pointer-events:none;z-index:-1;';
-    document.body.appendChild(host);
-    loadYouTubeApi().then(() => {
-        apiReady = true;
-        // Kalo user sempet klik play sebelum API siap, jalankan sekarang
-        if (pendingCard) {
-            toggleCard(pendingCard);
+    (document.body || document.documentElement).appendChild(host);
+
+    await loadYouTubeApi();
+    apiReady = true;
+
+    // Ada klik play yang masuk sebelum API siap → buat player + langsung main.
+    // Kalo nggak → PRE-WARM: bikin player & cue video pertama TANPA autoplay,
+    // biar klik play pertama tinggal playVideo() — gak nunggu bikin iframe & load video.
+    if (!player) {
+        const card = pendingCard || document.querySelector('[data-player-card]');
+        if (card) {
+            const autoplay = !!pendingCard;
             pendingCard = null;
+            createPlayer(card, autoplay);
         }
+    }
+})();
+
+// ── REVIEW FULL/KLIP (halaman story) — pakai player YT tersembunyi yang sama ──
+// Kartu pesan & review tidak pernah satu halaman, jadi aman berbagi instance `player`.
+let reviewPlayerCreated = false;
+const reviewHandlers = { ended: null, error: null };
+
+function createReviewPlayer(videoId, startSec) {
+    reviewPlayerCreated = true;
+    currentVideoId = videoId;
+    player = new YT.Player('yt-audio-host', {
+        videoId,
+        width: 1,
+        height: 1,
+        playerVars: {
+            playsinline: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            rel: 0,
+            modestbranding: 1,
+            start: startSec || 0,
+        },
+        events: {
+            onReady: () => {
+                playerReady = true;
+                player.playVideo();
+            },
+            onStateChange: (e) => {
+                if (e.data === YT.PlayerState.ENDED) reviewHandlers.ended?.();
+            },
+            onError: () => {
+                reviewHandlers.error?.();
+            },
+        },
     });
-});
+}
+
+window.storyReview = {
+    ensureReady() {
+        return ensureApiReady();
+    },
+    isLoaded() {
+        return reviewPlayerCreated && !!player;
+    },
+    videoId: '',
+    play(videoId, startSec) {
+        this.videoId = videoId;
+        currentVideoId = videoId;
+        if (!reviewPlayerCreated || !player) {
+            createReviewPlayer(videoId, startSec);
+            return;
+        }
+        if (startSec && startSec > 0) player.loadVideoById(videoId, startSec);
+        else player.loadVideoById(videoId);
+        player.playVideo();
+    },
+    resume() {
+        player?.playVideo();
+    },
+    pause() {
+        player?.pauseVideo();
+    },
+    seek(sec) {
+        player?.seekTo(sec, true);
+    },
+    time() {
+        return player ? player.getCurrentTime() : 0;
+    },
+    duration() {
+        return player ? player.getDuration() : 0;
+    },
+    state() {
+        return player ? player.getPlayerState() : -1;
+    },
+    on(event, fn) {
+        reviewHandlers[event] = fn;
+    },
+};

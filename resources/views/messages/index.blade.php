@@ -7,10 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Browse - SkanidaSong SMK</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" href="/favicon.ico">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -103,22 +100,26 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
                 @foreach ($messages as $msg)
                     {{-- ─── SATU CARD PESAN — semuanya link ke halaman detail (kecuali elemen interaktif) ─── --}}
+                    {{-- Tema kartu: theme-{key} dari kolom theme (null = polos/classic) --}}
                     <a href="{{ route('messages.show', $msg) }}" data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
-                        class="block border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm bg-white cursor-pointer">
+                        class="block relative overflow-hidden border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm theme-{{ $msg->theme ?: 'classic' }} cursor-pointer">
+                        @include('partials.theme-decor', ['theme' => $msg->theme])
                         {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
-                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {{ $msg->sender_name ?: 'anonim' }}</p>
-                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {{ $msg->recipient_name }}</p>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
+                            <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($msg->recipient_name) !!}</p>
                         </div>
                         {{-- Kelas + waktu (relatif, ex: "XI PPLG 1 • 2 hours ago") --}}
                         <div class="text-xs text-gray-500 mb-3">
                             {{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
-                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{{ \Illuminate\Support\Str::limit($msg->message, 80) }}</p>
+                        <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 80)) !!}</p>
                         {{-- Custom player (YouTube tersembunyi + UI sendiri) — muncul kalo youtube_video_id ADA --}}
                         @if ($msg->youtube_video_id)
                             <div data-player-card data-video-id="{{ $msg->youtube_video_id }}"
+                                data-clip-start="{{ $msg->clip_start_seconds }}"
+                                data-clip-end="{{ $msg->clip_end_seconds }}"
                                 class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 transition-shadow">
                                 <div class="flex items-center gap-3">
                                     @if ($msg->cover_url)
@@ -143,7 +144,7 @@
                                         <input data-seekbar type="range" min="0" max="1000" value="0"
                                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                     </div>
-                                    <span data-duration class="text-[11px] text-gray-500 w-8 text-right">0:00</span>
+                                    <span data-duration class="text-[11px] text-gray-500 w-8 text-right">{{ $msg->display_duration }}</span>
                                 </div>
                                 {{-- Fallback kalo video YouTube error/dihapus — button biar gak nested <a> di dalam <a> --}}
                                 <button type="button" data-fallback data-url="https://open.spotify.com/track/{{ $msg->spotify_track_id }}"

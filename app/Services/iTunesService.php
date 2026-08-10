@@ -32,6 +32,7 @@ class iTunesService
                     'artist' => $item['artistName'] ?? '',
                     'cover_url' => $this->biggerArtwork($item['artworkUrl100'] ?? null),
                     'duration_ms' => $item['trackTimeMillis'] ?? 0,
+                    'preview_url' => $item['previewUrl'] ?? null,
                 ])
                 ->values()
                 ->all();

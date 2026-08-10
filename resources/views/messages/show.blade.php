@@ -7,10 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Story - SkanidaSong SMK</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" href="/favicon.ico">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -37,12 +34,13 @@
             back to browse
         </a>
 
-        {{-- Kartu detail besar --}}
-        <div class="border border-[#E9E9E9] rounded-xl p-6 sm:p-8 bg-white">
+        {{-- Kartu detail besar (tema kartu dari kolom theme) --}}
+        <div class="relative overflow-hidden border border-[#E9E9E9] rounded-xl p-6 sm:p-8 theme-{{ $message->theme ?: 'classic' }}">
+            @include('partials.theme-decor', ['theme' => $message->theme])
             {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
             <div class="mb-2">
-                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {{ $message->sender_name ?: 'anonim' }}</p>
-                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {{ $message->recipient_name }}</p>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
+                <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
             </div>
             {{-- Kelas + waktu --}}
             <div class="text-xs text-gray-500 mb-6">
@@ -50,11 +48,13 @@
             </div>
 
             {{-- Isi pesan lengkap (font Reenie Beanie, sama seperti from/to) --}}
-            <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{{ $message->message }}</p>
+            <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{!! \App\Support\EmojiText::small($message->message) !!}</p>
 
             {{-- Player penuh kalo ada YouTube ID --}}
             @if ($message->youtube_video_id)
                 <div data-player-card data-video-id="{{ $message->youtube_video_id }}"
+                    data-clip-start="{{ $message->clip_start_seconds }}"
+                    data-clip-end="{{ $message->clip_end_seconds }}"
                     class="rounded-xl border border-gray-200 bg-gray-50 p-4 transition-shadow">
                     <div class="flex items-center gap-3">
                         @if ($message->cover_url)
@@ -77,7 +77,7 @@
                             <input data-seekbar type="range" min="0" max="1000" value="0"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         </div>
-                        <span data-duration class="text-[11px] text-gray-500 w-8 text-right">0:00</span>
+                        <span data-duration class="text-[11px] text-gray-500 w-8 text-right">{{ $message->display_duration }}</span>
                     </div>
                     <a data-fallback href="https://open.spotify.com/track/{{ $message->spotify_track_id }}"
                         target="_blank" class="hidden mt-2 text-xs text-green-600 hover:underline">
@@ -93,7 +93,50 @@
                 </a>
             @endif
         </div>
+
+        {{-- Tombol unduh pesan jadi gambar story 9:16 --}}
+        <div class="mt-4">
+            <button type="button" data-story-download
+                class="w-full py-3 px-6 rounded-xl bg-[#171717] text-white font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer enabled:hover:bg-gray-800 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                save as png
+            </button>
+            <p data-story-error class="hidden text-red-500 text-sm mt-2 text-center"></p>
+        </div>
     </main>
+
+    {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR INSTAGRAM STORY ─── --}}
+    {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
+    {{-- desain konsisten sama kartu detail di atas. --}}
+    <div data-story-art data-story-id="{{ $message->id }}"
+        class="fixed top-0 left-0 theme-{{ $message->theme ?: 'classic' }} flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none"
+        style="width:1080px;height:1920px">
+        {{-- Dekorasi tema ikut ter-capture ke PNG (scale 4 biar proporsional di 1080x1920) --}}
+        @include('partials.theme-decor', ['theme' => $message->theme, 'scale' => 4])
+        {{-- Wrapper konten — diukur & di-scale otomatis oleh JS biar selalu muat di 1920px --}}
+        <div data-story-inner class="w-full flex flex-col items-center justify-center">
+            <p class="font-reenie text-[48px] leading-[100%] text-[#171717] mb-14" style="line-height:1.8">SkanidaSong.my.id</p>
+
+            <p class="font-reenie text-[72px] text-[#171717]" style="line-height:1.8">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
+            <p class="font-reenie text-[72px] text-[#171717] mb-10" style="line-height:1.8">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
+
+            <p class="text-[24px] text-gray-500 mb-12">{{ $message->kelas }} &bull; {{ $message->created_at->format('d M Y') }}</p>
+
+            <p class="font-reenie text-[56px] text-[#171717] max-w-full" style="line-height:1.8">{!! \App\Support\EmojiText::small($message->message) !!}</p>
+
+            @if ($message->song_title)
+                <div class="mt-10 flex items-center gap-6 bg-gray-50 border border-[#E9E9E9] rounded-3xl px-8 py-5">
+                    @if ($message->cover_url)
+                        <img data-story-cover src="{{ $message->cover_url }}" class="w-20 h-20 rounded-2xl object-cover" alt="cover">
+                    @endif
+                    <div class="text-left">
+                        <p class="text-[30px] font-bold text-gray-950 max-w-[560px] truncate" style="line-height:1.4">{{ $message->song_title }}</p>
+                        <p class="text-[24px] text-gray-500" style="line-height:1.4">{{ $message->song_artist }}</p>
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
 
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">

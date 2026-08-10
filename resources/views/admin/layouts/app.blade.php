@@ -10,8 +10,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') — Skanida Songs SMK</title>
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
 
     {{-- Inline guard: baca tema tersimpan dari localStorage SEBELUM render pertama (anti flash) --}}
     <script>
@@ -24,9 +23,7 @@
         })();
     </script>
 
-    {{-- Font — sama kayak landing page: Plus Jakarta Sans (utama) + Reenie Beanie (dekoratif) --}}
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
+    {{-- Font — self-host di /fonts (Plus Jakarta Sans + Reenie Beanie), tanpa CDN --}}
 
     {{-- CSS template Meridian / Stisla — sudah dicompile di public/assets --}}
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
@@ -132,6 +129,23 @@
                                 Pesan Masuk
                             </a>
 
+                            <a href="{{ route('admin.spam') }}"
+                                class="sidebar__button"
+                                @if (request()->routeIs('admin.spam')) aria-current="page" @endif>
+                                <span style="position:relative;display:inline-flex;align-items:center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                        stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 3l9 4v5c0 4.5-3 7.7-9 9-6-1.3-9-4.5-9-9V7l9-4z" />
+                                        <path d="M12 8v4m0 3h.01" />
+                                    </svg>
+                                    @if (($spamCount ?? 0) > 0)
+                                        <span class="badge badge--danger" style="position:absolute;left:14px;top:-8px;min-height:16px;padding:2px 5px;font-size:10px">{{ $spamCount }}</span>
+                                    @endif
+                                </span>
+                                Notifikasi Spam
+                            </a>
+
                             <a href="{{ route('admin.songs') }}"
                                 class="sidebar__button"
                                 @if (request()->routeIs('admin.songs')) aria-current="page" @endif>
@@ -208,6 +222,30 @@
 
                 <div class="navbar__menu">
                     <nav class="navbar__nav">
+                        {{-- Kotak notifikasi spam --}}
+                        <div class="relative" style="position:relative">
+                            <button class="navbar__button" type="button" aria-label="Notifikasi spam"
+                                onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+                                </svg>
+                                @if (($spamCount ?? 0) > 0)
+                                    <span class="badge badge--danger" style="position:absolute;right:-3px;top:-5px;min-height:16px;padding:2px 5px;font-size:10px">{{ $spamCount }}</span>
+                                @endif
+                            </button>
+                            <div class="hidden" style="position:absolute;right:0;top:calc(100% + 10px);z-index:1000;width:250px;padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);box-shadow:var(--shadow-lg)">
+                                <p style="font-weight:600;margin-bottom:5px">Notifikasi</p>
+                                @if (($spamCount ?? 0) > 0)
+                                    <p class="text-muted-foreground text-xs" style="margin-bottom:10px">{{ $spamCount }} pesan terdeteksi sebagai spam.</p>
+                                    <a href="{{ route('admin.spam') }}" class="button button--danger button--sm button--block">Lihat spam</a>
+                                @else
+                                    <p class="text-muted-foreground text-xs">Tidak ada spam baru.</p>
+                                @endif
+                            </div>
+                        </div>
+
                         {{-- Toggle tema (gelap/terang) --}}
                         <button class="navbar__button" data-theme-toggle type="button" aria-label="Toggle theme">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"

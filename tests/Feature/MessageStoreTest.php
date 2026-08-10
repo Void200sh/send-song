@@ -21,7 +21,7 @@ class MessageStoreTest extends TestCase
 
         $this->assertDatabaseHas('messages', [
             'recipient_name' => 'Rina',
-            'sender_ip' => '203.0.113.7',
+            'ip_address' => '203.0.113.7',
         ]);
     }
 
@@ -36,7 +36,7 @@ class MessageStoreTest extends TestCase
 
         $this->assertDatabaseHas('messages', [
             'recipient_name' => 'Rina',
-            'sender_ip' => '127.0.0.1',
+            'ip_address' => '127.0.0.1',
         ]);
     }
 }

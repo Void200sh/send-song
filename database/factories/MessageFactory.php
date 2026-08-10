@@ -30,8 +30,9 @@ class MessageFactory extends Factory
         return [
             'recipient_name' => $this->faker->firstName(),
             'kelas' => $this->faker->randomElement(self::$kelasList),
-            'sender_ip' => $this->faker->ipv4(),
+            'ip_address' => $this->faker->ipv4(),
             'message' => $this->faker->realTextBetween(20, 120),
+            'theme' => $this->faker->randomElement(['bunga', 'senja', 'laut', 'lavender', 'mint', null]),
             'spotify_track_id' => $this->faker->randomElement(self::$spotifyTracks),
             'created_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
             'updated_at' => now(),

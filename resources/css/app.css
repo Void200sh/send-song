@@ -5,8 +5,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── FONT LOKAL (SELF-HOST) ─── */
+/* Font di-host sendiri di /fonts — tanpa CDN eksternal, jadi:
+   1) selalu termuat cepat walau jaringan ke fonts.bunny.net mati,
+   2) html-to-image bisa embed ke PNG tanpa kendala CORS/CDN. */
+@font-face {
+    font-family: 'Reenie Beanie';
+    src: url('/fonts/reenie-beanie-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('/fonts/plus-jakarta-sans-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('/fonts/plus-jakarta-sans-500.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('/fonts/plus-jakarta-sans-600.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('/fonts/plus-jakarta-sans-700.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Figtree';
+    src: url('/fonts/figtree-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Figtree';
+    src: url('/fonts/figtree-500.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Figtree';
+    src: url('/fonts/figtree-600.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* ─── FONT UTAMA ─── */
-/* Font sans-serif utama: Plus Jakarta Sans (dari Google Fonts) */
+/* Font sans-serif utama: Plus Jakarta Sans (self-host, bukan Google Fonts lagi) */
 .font-sans {
     font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
@@ -19,14 +87,17 @@
 }
 
 /* ─── ANIMASI MARQUEE ─── */
-/* Teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
+/* Kartu/teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
+/* will-change: transform — biar GPU yang nge-render, halus di mobile */
 .animate-marquee {
     animation: marquee 30s linear infinite;
+    will-change: transform;
 }
 
-/* Animasi marquee reverse — teks jalan dari kiri ke kanan */
+/* Animasi marquee reverse — kartu/teks jalan dari kiri ke kanan */
 .animate-marquee-reverse {
     animation: marquee-reverse 30s linear infinite;
+    will-change: transform;
 }
 
 /* ─── KEYFRAMES MARQUEE ─── */
@@ -42,4 +113,31 @@
 @keyframes marquee-reverse {
     0% { transform: translateX(-50%); }
     100% { transform: translateX(0); }
+}
+
+/* ─── TEMA KARTU PESAN (ala chat TikTok) ─── */
+/* Gradasi pastel terang — teks gelap yang sudah dipakai tetap kebaca. */
+/* Dekorasi emoji melayang dirender lewat partial theme-decor.blade.php. */
+.theme-classic {
+    background-color: #ffffff;
+}
+
+.theme-bunga {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 45%, #fbcfe8 100%);
+}
+
+.theme-senja {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fecdd3 100%);
+}
+
+.theme-laut {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 45%, #bae6fd 100%);
+}
+
+.theme-lavender {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 45%, #e9d5ff 100%);
+}
+
+.theme-mint {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 45%, #bbf7d0 100%);
 }
