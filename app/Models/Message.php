@@ -18,6 +18,7 @@ class Message extends Model
         'sender_name',      // string/null — nama pengirim (opsional, anonim kalo kosong)
         'recipient_name',   // string — nama penerima pesan
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
+        'sender_ip',        // string/null — alamat IP pengirim (buat pantauan admin)
         'message',          // text — isi pesan
         'spotify_track_id', // string/null — ID track Spotify hasil ekstraksi
         'song_title',       // string/null — judul lagu dari Spotify

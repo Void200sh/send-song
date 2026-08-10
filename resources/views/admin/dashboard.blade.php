@@ -272,6 +272,7 @@
                             <thead>
                                 <tr>
                                     <th>Dari</th>
+                                    <th>IP</th>
                                     <th>Untuk</th>
                                     <th>Kelas</th>
                                     <th>Pesan</th>
@@ -288,6 +289,7 @@
                                                 <span class="badge badge--soft">Anonim</span>
                                             @endif
                                         </td>
+                                        <td class="text-muted-foreground text-xs">{{ $msg->sender_ip ?: '—' }}</td>
                                         <td class="font-medium">{{ $msg->recipient_name }}</td>
                                         <td>{{ $msg->kelas }}</td>
                                         <td class="max-w-36">{{ \Illuminate\Support\Str::limit($msg->message, 40) }}</td>

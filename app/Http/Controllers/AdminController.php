@@ -253,11 +253,12 @@ class AdminController extends Controller
 
         $messages = $query->orderByDesc('created_at')->get();
 
-        $rows = [['ID', 'Dari', 'Untuk', 'Kelas', 'Pesan', 'Judul Lagu', 'Artis', 'Spotify ID', 'YouTube ID', 'Waktu Kirim']];
+        $rows = [['ID', 'Dari', 'IP', 'Untuk', 'Kelas', 'Pesan', 'Judul Lagu', 'Artis', 'Spotify ID', 'YouTube ID', 'Waktu Kirim']];
         foreach ($messages as $m) {
             $rows[] = [
                 $m->id,
                 $m->sender_name ?: 'Anonim',
+                $m->sender_ip ?: '',
                 $m->recipient_name,
                 $m->kelas,
                 $m->message,

@@ -19,6 +19,7 @@ class AdminPagesTest extends TestCase
             'sender_name' => 'anon',
             'recipient_name' => 'Rina',
             'kelas' => 'XI PPLG 1',
+            'sender_ip' => '192.168.1.10',
             'message' => 'halo',
             'song_title' => 'Sampai Akhir Waktu',
             'song_artist' => 'Yovie & Nuno',
@@ -37,6 +38,7 @@ class AdminPagesTest extends TestCase
             ->get(route('admin.messages'))
             ->assertOk()
             ->assertSee('Sampai Akhir Waktu')
+            ->assertSee('192.168.1.10')
             ->assertSee('resolve');
     }
 

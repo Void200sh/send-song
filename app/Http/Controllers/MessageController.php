@@ -119,6 +119,19 @@ class MessageController extends Controller
         // Kalo gak dihapus, Laravel bakal nyoba nyimpen kolom spotify_url yang gak ada di tabel → error
         unset($validated['spotify_url']);
 
+        // ─── TANGKAP IP PENGIRIM ───
+        // Kalo server di belakang proxy/CDN (mis. Cloudflare), IP asli ada di header X-Forwarded-For
+        // (bisa berisi daftar IP dipisah koma — ambil yang paling kiri = IP client asli).
+        // Kalau gak ada / kosong / formatnya gak valid, fallback ke IP yang terdeteksi Laravel ($request->ip()).
+        $senderIp = $request->header('X-Forwarded-For');
+        if ($senderIp) {
+            $senderIp = trim(explode(',', $senderIp)[0]);
+        }
+        if (! $senderIp || ! filter_var($senderIp, FILTER_VALIDATE_IP)) {
+            $senderIp = $request->ip();
+        }
+        $validated['sender_ip'] = $senderIp;
+
         // ─── SIMPAN KE DATABASE ───
         // Pake metode create() — isinya sesuai $fillable di model Message
         Message::create($validated);
