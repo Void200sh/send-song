@@ -69,6 +69,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
     Route::get('/spam', [AdminController::class, 'spam'])->name('spam');
+    Route::get('/hack', [AdminController::class, 'hackTraces'])->name('hack');
+    Route::post('/hack/read-all', [AdminController::class, 'markHackAttemptsRead'])->name('hack.read-all');
+    Route::delete('/hack/{attempt}', [AdminController::class, 'destroyHackAttempt'])->name('hack.destroy');
+    Route::post('/hack/clear', [AdminController::class, 'clearHackAttempts'])->name('hack.clear');
     Route::post('/spam/delete-group', [AdminController::class, 'destroySpamGroup'])
         ->name('spam.destroy-group');
     Route::delete('/messages/{message}', [AdminController::class, 'destroy'])->name('messages.destroy');
@@ -82,6 +86,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 });
 
 require __DIR__.'/auth.php';
+
+// ─── FALLBACK 404 ───
+// Jebakan untuk semua URL yang tidak dikenal (misal /.env, /wp-admin, /phpmyadmin).
+// Tanpa ini, request ke URL tersebut langsung 404 SEBELUM middleware web sempat jalan,
+// jadi percobaan probing dari luar tidak akan terekam di halaman Jejak Hacking.
+Route::fallback(function () {
+    abort(404);
+});
 
 // ─── API INTERNAL: PENCARIAN & RESOLVE LAGU ───
 Route::prefix('api')->group(function () {

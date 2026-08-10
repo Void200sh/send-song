@@ -146,6 +146,23 @@
                                 Notifikasi Spam
                             </a>
 
+                            <a href="{{ route('admin.hack') }}"
+                                class="sidebar__button"
+                                @if (request()->routeIs('admin.hack*')) aria-current="page" @endif>
+                                <span style="position:relative;display:inline-flex;align-items:center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                        stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 3l9 4v5c0 4.5-3 7.7-9 9-6-1.3-9-4.5-9-9V7l9-4z" />
+                                        <path d="M12 8v4m0 3h.01" />
+                                    </svg>
+                                    @if (($hackCount ?? 0) > 0)
+                                        <span class="badge badge--danger" style="position:absolute;left:14px;top:-8px;min-height:16px;padding:2px 5px;font-size:10px">{{ $hackCount }}</span>
+                                    @endif
+                                </span>
+                                Jejak Hacking
+                            </a>
+
                             <a href="{{ route('admin.songs') }}"
                                 class="sidebar__button"
                                 @if (request()->routeIs('admin.songs')) aria-current="page" @endif>
@@ -242,6 +259,31 @@
                                     <a href="{{ route('admin.spam') }}" class="button button--danger button--sm button--block">Lihat spam</a>
                                 @else
                                     <p class="text-muted-foreground text-xs">Tidak ada spam baru.</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Kotak notifikasi jejak hacking --}}
+                        <div class="relative" style="position:relative">
+                            <button class="navbar__button" type="button" aria-label="Notifikasi hacking"
+                                onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 3l9 4v5c0 4.5-3 7.7-9 9-6-1.3-9-4.5-9-9V7l9-4z" />
+                                    <path d="M12 8v4m0 3h.01" />
+                                </svg>
+                                @if (($hackCount ?? 0) > 0)
+                                    <span class="badge badge--danger" style="position:absolute;right:-3px;top:-5px;min-height:16px;padding:2px 5px;font-size:10px">{{ $hackCount }}</span>
+                                @endif
+                            </button>
+                            <div class="hidden" style="position:absolute;right:0;top:calc(100% + 10px);z-index:1000;width:250px;padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);box-shadow:var(--shadow-lg)">
+                                <p style="font-weight:600;margin-bottom:5px">Jejak Hacking</p>
+                                @if (($hackCount ?? 0) > 0)
+                                    <p class="text-muted-foreground text-xs" style="margin-bottom:10px">{{ $hackCount }} percobaan mencurigakan baru terdeteksi.</p>
+                                    <a href="{{ route('admin.hack') }}" class="button button--danger button--sm button--block">Lihat jejak hacking</a>
+                                @else
+                                    <p class="text-muted-foreground text-xs">Tidak ada percobaan mencurigakan baru. 🛡️</p>
                                 @endif
                             </div>
                         </div>

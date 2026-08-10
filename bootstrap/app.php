@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\CheckSpamBan;
+use App\Http\Middleware\TrackHackAttempt;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'spam-ban' => CheckSpamBan::class,
+        ]);
+
+        // Catat percobaan mencurigakan (SQLi, XSS, probing file sensitif, dll) ke tabel hack_attempts
+        $middleware->web(append: [
+            TrackHackAttempt::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

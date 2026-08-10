@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# stray local sqlite dump created during debugging
+skanida_song

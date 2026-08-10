@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\HackAttempt;
 use App\Models\Message;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     {
         View::composer('admin.layouts.app', function ($view): void {
             $view->with('spamCount', Message::where('is_spam', true)->count());
+            $view->with('hackCount', HackAttempt::where('is_new', true)->count());
         });
     }
 }

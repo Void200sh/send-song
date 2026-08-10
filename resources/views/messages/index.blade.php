@@ -109,10 +109,19 @@
                     <a href="{{ route('messages.show', $msg) }}" data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
                         class="block relative overflow-hidden border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm theme-{{ $msg->theme ?: 'classic' }} cursor-pointer">
                         @include('partials.theme-decor', ['theme' => $msg->theme])
-                        {{-- Badge pin (dipasang admin) — tampil di pojok kanan atas kartu --}}
+                        {{-- Badge pin (dipasang admin) — tampil di pojok kanan atas, di samping tombol share --}}
                         @if ($msg->is_pinned)
-                            <span class="absolute top-3 right-3 flex items-center gap-1 text-[11px] font-semibold text-white bg-[#171717]/90 rounded-full px-2 py-1 shadow-sm">📌 pinned</span>
+                            <span class="absolute top-3 right-12 flex items-center gap-1 text-[11px] font-semibold text-white bg-[#171717]/90 rounded-full px-2 py-1 shadow-sm">📌 pinned</span>
                         @endif
+                        {{-- Tombol share — bagikan LINK pesan ini (tanpa gambar). Klik aman: tidak membuka halaman detail. --}}
+                        <button type="button" data-share-card
+                            data-share-url="{{ route('messages.show', $msg) }}"
+                            data-share-recipient="{{ $msg->recipient_name }}"
+                            title="share pesan ini"
+                            aria-label="share pesan ini"
+                            class="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/85 border border-[#E9E9E9] text-gray-500 hover:text-gray-950 hover:border-[#171717] transition-colors cursor-pointer shadow-sm backdrop-blur">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                        </button>
                         {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>

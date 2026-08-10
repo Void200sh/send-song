@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HackAttempt;
 use App\Models\Message;
 use App\Models\SpamBan;
 use App\Services\SpamDetectionService;
@@ -145,6 +146,72 @@ class AdminController extends Controller
         return back()->with('success', $pinned
             ? 'Pesan berhasil di-pin — tampil paling atas di halaman browse.'
             : 'Pin pesan dilepas.');
+    }
+
+    /**
+     * ─── HALAMAN JEJAK HACKING ───
+     * Rekap percobaan mencurigakan dari luar (injeksi, probing file sensitif, brute-force login)
+     * yang terekam otomatis oleh middleware TrackHackAttempt. Bisa difilter ?severity=... dan ?search=...
+     */
+    public function hackTraces(Request $request)
+    {
+        $query = HackAttempt::query();
+
+        if ($request->filled('severity')) {
+            $query->where('severity', $request->severity);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('ip_address', 'like', '%' . $search . '%')
+                    ->orWhere('path', 'like', '%' . $search . '%')
+                    ->orWhere('reason', 'like', '%' . $search . '%')
+                    ->orWhere('signature', 'like', '%' . $search . '%');
+            });
+        }
+
+        $attempts = $query->latest()->paginate(20)->withQueryString()->onEachSide(1);
+
+        $stats = [
+            'total' => HackAttempt::count(),
+            'today' => HackAttempt::whereDate('created_at', Carbon::today())->count(),
+            'critical' => HackAttempt::where('severity', 'critical')->count(),
+            'uniqueIps' => HackAttempt::distinct('ip_address')->count('ip_address'),
+            'newCount' => HackAttempt::where('is_new', true)->count(),
+        ];
+
+        return view('admin.hack', compact('attempts', 'stats'));
+    }
+
+    /**
+     * Tandai semua jejak hacking sebagai sudah dibaca.
+     */
+    public function markHackAttemptsRead()
+    {
+        HackAttempt::where('is_new', true)->update(['is_new' => false]);
+
+        return back()->with('success', 'Semua jejak hacking ditandai sudah dibaca.');
+    }
+
+    /**
+     * Hapus satu baris jejak hacking.
+     */
+    public function destroyHackAttempt(HackAttempt $attempt)
+    {
+        $attempt->delete();
+
+        return back()->with('success', 'Satu jejak hacking dihapus.');
+    }
+
+    /**
+     * Kosongkan semua jejak hacking.
+     */
+    public function clearHackAttempts()
+    {
+        HackAttempt::query()->delete();
+
+        return back()->with('success', 'Semua jejak hacking telah dihapus.');
     }
 
     /**

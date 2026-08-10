@@ -128,47 +128,27 @@
 
         {{-- Tombol unduh pesan jadi gambar story 9:16 --}}
         <div class="mt-4">
-            <button type="button" data-story-download
-                class="w-full py-3 px-6 rounded-xl bg-[#171717] text-white font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer enabled:hover:bg-gray-800 flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
-                save as png
-            </button>
-            <p data-story-error class="hidden text-red-500 text-sm mt-2 text-center"></p>
+            {{-- Tombol unduh gambar story 9:16 + tombol share (bagikan LINK saja) --}}
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" data-story-download
+                    class="flex-1 py-3 px-6 rounded-xl bg-[#171717] text-white font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer enabled:hover:bg-gray-800 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                    save as png
+                </button>
+                <button type="button" data-story-share
+                    data-share-url="{{ url()->current() }}"
+                    data-share-recipient="{{ $message->recipient_name }}"
+                    class="flex-1 py-3 px-6 rounded-xl border border-[#171717] text-gray-950 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer enabled:hover:bg-gray-50 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                    share
+                </button>
+            </div>
+            <p data-story-error class="hidden w-full sm:basis-full text-red-500 text-sm mt-2 text-center"></p>
         </div>
     </main>
 
-    {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR INSTAGRAM STORY ─── --}}
-    {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
-    {{-- desain konsisten sama kartu detail di atas. --}}
-    <div data-story-art data-story-id="{{ $message->id }}"
-        class="fixed top-0 left-0 theme-{{ $message->theme ?: 'classic' }} flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none"
-        style="width:1080px;height:1920px">
-        {{-- Dekorasi tema ikut ter-capture ke PNG (scale 4 biar proporsional di 1080x1920) --}}
-        @include('partials.theme-decor', ['theme' => $message->theme, 'scale' => 4])
-        {{-- Wrapper konten — diukur & di-scale otomatis oleh JS biar selalu muat di 1920px --}}
-        <div data-story-inner class="w-full flex flex-col items-center justify-center">
-            <p class="font-reenie text-[48px] leading-[100%] text-[#171717] mb-14" style="line-height:1.8">SkanidaSong.my.id</p>
-
-            <p class="font-reenie text-[72px] text-[#171717]" style="line-height:1.8">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
-            <p class="font-reenie text-[72px] text-[#171717] mb-10" style="line-height:1.8">to: {!! \App\Support\EmojiText::small($message->recipient_name) !!}</p>
-
-            <p class="text-[24px] text-gray-500 mb-12">{{ $message->kelas }} &bull; {{ $message->created_at->format('d M Y') }}</p>
-
-            <p class="font-reenie text-[56px] text-[#171717] max-w-full" style="line-height:1.8">{!! \App\Support\EmojiText::small($message->message) !!}</p>
-
-            @if ($message->song_title)
-                <div class="mt-10 flex items-center gap-6 bg-gray-50 border border-[#E9E9E9] rounded-3xl px-8 py-5">
-                    @if ($message->cover_url)
-                        <img data-story-cover src="{{ $message->cover_url }}" class="w-20 h-20 rounded-2xl object-cover" alt="cover">
-                    @endif
-                    <div class="text-left">
-                        <p class="text-[30px] font-bold text-gray-950 max-w-[560px] truncate" style="line-height:1.4">{{ $message->song_title }}</p>
-                        <p class="text-[24px] text-gray-500" style="line-height:1.4">{{ $message->song_artist }}</p>
-                    </div>
-                </div>
-            @endif
-        </div>
-    </div>
+    {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR (save as png / share) ─── --}}
+    @include('partials.story-art', ['msg' => $message])
 
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">
