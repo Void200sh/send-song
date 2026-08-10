@@ -31,6 +31,7 @@ class MessageFactory extends Factory
             'recipient_name' => $this->faker->firstName(),
             'kelas' => $this->faker->randomElement(self::$kelasList),
             'message' => $this->faker->realTextBetween(20, 120),
+            'theme' => $this->faker->randomElement(['bunga', 'senja', 'laut', 'lavender', 'mint', null]),
             'spotify_track_id' => $this->faker->randomElement(self::$spotifyTracks),
             'created_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
             'updated_at' => now(),

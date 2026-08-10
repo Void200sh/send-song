@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MessageController extends Controller
 {
@@ -91,6 +92,7 @@ class MessageController extends Controller
             'recipient_name' => 'required|string|max:255',
             'kelas' => 'required|string|max:50',
             'message' => 'required|string',
+            'theme' => ['nullable', 'string', Rule::in(Message::THEMES)],
             'spotify_track_id' => 'nullable|string|max:50',
             'song_title' => 'nullable|string|max:255',
             'song_artist' => 'nullable|string|max:255',
@@ -107,6 +109,12 @@ class MessageController extends Controller
         // Biar di admin gak nampil "   " yang jelek
         if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
             $validated['sender_name'] = null;
+        }
+
+        // ─── NORMALISASI TEMA ───
+        // Tema 'classic' (polos) disimpan sebagai NULL biar konsisten sama pesan lama
+        if (($validated['theme'] ?? null) === 'classic') {
+            $validated['theme'] = null;
         }
 
         // ─── NORMALISASI KLIP LAGU ───

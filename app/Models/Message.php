@@ -19,6 +19,7 @@ class Message extends Model
         'recipient_name',   // string — nama penerima pesan
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
         'message',          // text — isi pesan
+        'theme',            // string/null — tema kartu (null = polos/classic)
         'spotify_track_id', // string/null — ID track Spotify hasil ekstraksi
         'song_title',       // string/null — judul lagu dari Spotify
         'song_artist',      // string/null — nama penyanyi
@@ -32,6 +33,11 @@ class Message extends Model
     // id → auto increment (primary key)
     // created_at → diisi otomatis sama Laravel
     // updated_at → diisi otomatis sama Laravel
+
+    // ─── TEMA KARTU ───
+    // Key tema valid untuk kartu pesan (gaya chat TikTok: gradasi pastel + dekorasi emoji).
+    // 'classic' = polos (default) — disimpan sebagai NULL di DB biar konsisten sama pesan lama.
+    public const THEMES = ['classic', 'bunga', 'senja', 'laut', 'lavender', 'mint'];
 
     // Durasi yang ditampilkan di kartu public: durasi klip (end-start) kalau ada klip,
     // selain itu durasi lagu penuh. Fallback "0:00" kalau keduanya belum diketahui.

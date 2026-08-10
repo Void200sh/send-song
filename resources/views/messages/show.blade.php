@@ -34,8 +34,9 @@
             back to browse
         </a>
 
-        {{-- Kartu detail besar --}}
-        <div class="border border-[#E9E9E9] rounded-xl p-6 sm:p-8 bg-white">
+        {{-- Kartu detail besar (tema kartu dari kolom theme) --}}
+        <div class="relative overflow-hidden border border-[#E9E9E9] rounded-xl p-6 sm:p-8 theme-{{ $message->theme ?: 'classic' }}">
+            @include('partials.theme-decor', ['theme' => $message->theme])
             {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
             <div class="mb-2">
                 <p class="font-reenie text-[40px] sm:text-[48px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($message->sender_name ?: 'anonymous') !!}</p>
@@ -108,8 +109,10 @@
     {{-- Disembunyikan di luar layar (bukan display:none, biar bisa di-render), --}}
     {{-- desain konsisten sama kartu detail di atas. --}}
     <div data-story-art data-story-id="{{ $message->id }}"
-        class="fixed top-0 left-0 bg-[#FFFFFF] flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none"
+        class="fixed top-0 left-0 theme-{{ $message->theme ?: 'classic' }} flex items-center justify-center px-24 text-center overflow-hidden opacity-0 pointer-events-none select-none"
         style="width:1080px;height:1920px">
+        {{-- Dekorasi tema ikut ter-capture ke PNG (scale 4 biar proporsional di 1080x1920) --}}
+        @include('partials.theme-decor', ['theme' => $message->theme, 'scale' => 4])
         {{-- Wrapper konten — diukur & di-scale otomatis oleh JS biar selalu muat di 1920px --}}
         <div data-story-inner class="w-full flex flex-col items-center justify-center">
             <p class="font-reenie text-[48px] leading-[100%] text-[#171717] mb-14" style="line-height:1.8">SkanidaSong.my.id</p>

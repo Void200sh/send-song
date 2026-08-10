@@ -100,8 +100,10 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
                 @foreach ($messages as $msg)
                     {{-- ─── SATU CARD PESAN — semuanya link ke halaman detail (kecuali elemen interaktif) ─── --}}
+                    {{-- Tema kartu: theme-{key} dari kolom theme (null = polos/classic) --}}
                     <a href="{{ route('messages.show', $msg) }}" data-msg-card data-detail-url="{{ route('messages.show', $msg) }}"
-                        class="block border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm bg-white cursor-pointer">
+                        class="block relative overflow-hidden border border-[#E9E9E9] rounded-xl p-5 transition-colors hover:border-[#171717] hover:shadow-sm theme-{{ $msg->theme ?: 'classic' }} cursor-pointer">
+                        @include('partials.theme-decor', ['theme' => $msg->theme])
                         {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
                         <div class="mb-2">
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>

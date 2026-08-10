@@ -86,57 +86,46 @@
             </div>
         </div>
 
-        {{-- ─── MARQUEE 1: NAMA & KELAS (KANAN KE KIRI) ─── --}}
-        {{-- Marquee ini nampilin "to: [nama] — [kelas]" jalan terus ke kiri --}}
-        <div class="border-y border-[#E9E9E9] overflow-hidden py-4 mb-8">
-            {{-- animate-marquee = animasi custom dari app.css (translate dari 0 ke -50%) --}}
-            <div class="flex animate-marquee whitespace-nowrap">
-                {{-- Div 1: konten asli --}}
-                <div class="flex gap-10 shrink-0">
-                    @foreach ($marqueeMessages as $msg)
-                        <span class="text-sm text-gray-600">
-                            to: {{ $msg->recipient_name }}
-                            <span class="text-gray-300 mx-2">&mdash;</span>
-                            {{ $msg->kelas }}
-                        </span>
-                    @endforeach
-                </div>
-                {{-- Div 2: DUPLIKAT konten (biar loop mulus, gak ada jeda kosong) --}}
-                <div class="flex gap-10 shrink-0">
-                    @foreach ($marqueeMessages as $msg)
-                        <span class="text-sm text-gray-600">
-                            to: {{ $msg->recipient_name }}
-                            <span class="text-gray-300 mx-2">&mdash;</span>
-                            {{ $msg->kelas }}
-                        </span>
-                    @endforeach
+        {{-- ─── MARQUEE KARTU 1: KARTU PESAN BERJALAN (KANAN KE KIRI) ─── --}}
+        {{-- Kartu bergulir ala sendthesong.xyz: cover lagu + judul + isi pesan + badge "to: [nama]" --}}
+        {{-- Konten di-duplikat 2× biar infinite loop mulus (translate -50%). Pause saat hover. --}}
+        @if ($marqueeMessages->isNotEmpty())
+            <div class="group border-y border-[#E9E9E9] overflow-hidden py-4 mb-8">
+                <div class="flex animate-marquee group-hover:[animation-play-state:paused]">
+                    {{-- Div 1: konten asli --}}
+                    <div class="flex gap-4 shrink-0">
+                        @foreach ($marqueeMessages->take(10) as $msg)
+                            @include('partials.marquee-card', ['msg' => $msg])
+                        @endforeach
+                    </div>
+                    {{-- Div 2: DUPLIKAT (biar loop mulus, gak ada jeda kosong) — disembunyikan dari screen reader --}}
+                    <div class="flex gap-4 shrink-0" aria-hidden="true">
+                        @foreach ($marqueeMessages->take(10) as $msg)
+                            @include('partials.marquee-card', ['msg' => $msg])
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
 
-        {{-- ─── MARQUEE 2: ISI PESAN (KIRI KE KANAN) ─── --}}
-        {{-- Marquee ini nampilin isi pesan dipotong 60 karakter, jalannya KE KANAN (reverse) --}}
-        <div class="border-b border-[#E9E9E9] overflow-hidden py-4 mb-8">
-            {{-- animate-marquee-reverse = kebalikan dari marquee biasa --}}
-            <div class="flex animate-marquee-reverse whitespace-nowrap">
-                <div class="flex gap-10 shrink-0">
-                    @foreach ($marqueeMessages as $msg)
-                        {{-- Str::limit potong teks jadi maksimal 60 karakter, font Reenie Beanie --}}
-                        <span class="font-reenie text-[20px] leading-[100%] text-[#171717]">
-                            "{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 60)) !!}"
-                        </span>
-                    @endforeach
-                </div>
-                {{-- Duplikat lagi biar infinite loop mulus --}}
-                <div class="flex gap-10 shrink-0">
-                    @foreach ($marqueeMessages as $msg)
-                        <span class="font-reenie text-[20px] leading-[100%] text-[#171717]">
-                            "{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 60)) !!}"
-                        </span>
-                    @endforeach
+        {{-- ─── MARQUEE KARTU 2: KARTU PESAN BERJALAN (KIRI KE KANAN — REVERSE) ─── --}}
+        {{-- Baris kedua: setengah pesan sisanya, arahnya kebalikan (reverse). Pause saat hover. --}}
+        @if ($marqueeMessages->count() > 10)
+            <div class="group border-b border-[#E9E9E9] overflow-hidden py-4 mb-8">
+                <div class="flex animate-marquee-reverse group-hover:[animation-play-state:paused]">
+                    <div class="flex gap-4 shrink-0">
+                        @foreach ($marqueeMessages->skip(10)->take(10) as $msg)
+                            @include('partials.marquee-card', ['msg' => $msg])
+                        @endforeach
+                    </div>
+                    <div class="flex gap-4 shrink-0" aria-hidden="true">
+                        @foreach ($marqueeMessages->skip(10)->take(10) as $msg)
+                            @include('partials.marquee-card', ['msg' => $msg])
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
 
         </main>
 
