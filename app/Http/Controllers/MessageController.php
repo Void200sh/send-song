@@ -140,6 +140,22 @@ class MessageController extends Controller
         // Kalo gak dihapus, Laravel bakal nyoba nyimpen kolom spotify_url yang gak ada di tabel → error
         unset($validated['spotify_url']);
 
+        // ─── CEGAH SUBMIT GANDA (jaring pengaman server-side) ───
+        // Kalau ada pesan IDENTIK (pengirim + penerima + kelas + isi sama) yang terkirim < 2 menit lalu,
+        // tolak — biasanya ini dobel klik / kirim ulang yang lolos dari proteksi JS di frontend.
+        $duplicate = Message::where('recipient_name', $validated['recipient_name'])
+            ->where('kelas', $validated['kelas'])
+            ->where('message', $validated['message'])
+            ->where('sender_name', $validated['sender_name'] ?? null)
+            ->where('created_at', '>=', now()->subMinutes(2))
+            ->exists();
+
+        if ($duplicate) {
+            return back()
+                ->withErrors(['message' => 'Pesan dengan isi yang sama sudah terkirim. Silakan coba lagi beberapa menit kemudian.'])
+                ->withInput();
+        }
+
         // ─── SIMPAN KE DATABASE ───
         // Pake metode create() — isinya sesuai $fillable di model Message
         Message::create($validated);

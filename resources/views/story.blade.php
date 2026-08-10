@@ -55,7 +55,7 @@
             @endif
 
             {{-- ─── FORM ─── --}}
-            <form method="POST" action="{{ route('messages.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('messages.store') }}" id="story-form" class="space-y-5">
                 @csrf
 
                 {{-- Input Nama Pengirim (opsional) --}}
@@ -228,6 +228,29 @@
 
             document.addEventListener('click', function () {
                 list.classList.add('hidden');
+            });
+        })();
+    </script>
+
+    {{-- ─── JS: CEGAH SUBMIT GANDA (double-click / tekan Enter berkali) ─── --}}
+    <script>
+        (function () {
+            var form = document.getElementById('story-form');
+            var btn = document.getElementById('submit-btn');
+            if (!form || !btn) return;
+
+            var submitting = false;
+            form.addEventListener('submit', function (e) {
+                // Submit kedua saat proses masih berjalan → batalkan
+                if (submitting) {
+                    e.preventDefault();
+                    return;
+                }
+                // Kunci tombol + kasih feedback ke user
+                submitting = true;
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+                btn.textContent = 'mengirim...';
             });
         })();
     </script>
