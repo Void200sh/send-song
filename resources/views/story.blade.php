@@ -55,7 +55,7 @@
             @endif
 
             {{-- ─── FORM ─── --}}
-            <form method="POST" action="{{ route('messages.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('messages.store') }}" id="story-form" class="space-y-5">
                 @csrf
 
                 {{-- Input Nama Pengirim (opsional) --}}
@@ -99,6 +99,35 @@
                         placeholder="your untold words..."
                         required
                         class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors resize-none">{{ old('message') }}</textarea>
+                </div>
+
+                {{-- Pilih Tema Kartu (opsional) — preview langsung gradasinya, ala tema chat TikTok --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">tema kartu <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="hidden" name="theme" id="inp-theme" value="{{ old('theme') }}">
+                    @php
+                        $themes = [
+                            'classic' => ['polos', ''],
+                            'bunga' => ['berbunga', '🌸'],
+                            'senja' => ['senja', '🌅'],
+                            'laut' => ['laut', '🌊'],
+                            'lavender' => ['lavender', '💜'],
+                            'mint' => ['mint', '🍃'],
+                        ];
+                    @endphp
+                    <div id="theme-picker" class="grid grid-cols-3 gap-2">
+                        @foreach ($themes as $key => [$label, $emoji])
+                            <button type="button" data-theme="{{ $key }}" aria-pressed="{{ old('theme') === $key ? 'true' : 'false' }}"
+                                class="group text-left p-2 rounded-xl border-2 transition-all cursor-pointer bg-white @if(old('theme') === $key) border-[#171717] shadow-sm @else border-transparent hover:border-gray-300 @endif">
+                                <span class="relative block h-12 rounded-lg overflow-hidden border border-black/5 theme-{{ $key }}">
+                                    @if ($emoji)
+                                        <span class="absolute inset-0 flex items-center justify-center text-[22px] opacity-50 group-hover:opacity-80 transition-opacity">{{ $emoji }}</span>
+                                    @endif
+                                </span>
+                                <span class="block text-xs mt-1.5 text-gray-600 text-center">{{ $label }}</span>
+                            </button>
+                        @endforeach
+                    </div>
                 </div>
 
                 {{-- Pencarian lagu via Spotify API → resolve YouTube --}}
@@ -228,6 +257,52 @@
 
             document.addEventListener('click', function () {
                 list.classList.add('hidden');
+            });
+        })();
+    </script>
+
+    {{-- ─── JS: PILIH TEMA KARTU ─── --}}
+    <script>
+        (function () {
+            var picker = document.getElementById('theme-picker');
+            var input = document.getElementById('inp-theme');
+            if (!picker || !input) return;
+
+            picker.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-theme]');
+                if (!btn) return;
+                input.value = btn.getAttribute('data-theme');
+                picker.querySelectorAll('[data-theme]').forEach(function (b) {
+                    var on = b === btn;
+                    b.classList.toggle('border-[#171717]', on);
+                    b.classList.toggle('shadow-sm', on);
+                    b.classList.toggle('border-transparent', !on);
+                    b.classList.toggle('hover:border-gray-300', !on);
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+            });
+        })();
+    </script>
+
+    {{-- ─── JS: CEGAH SUBMIT GANDA (double-click / tekan Enter berkali) ─── --}}
+    <script>
+        (function () {
+            var form = document.getElementById('story-form');
+            var btn = document.getElementById('submit-btn');
+            if (!form || !btn) return;
+
+            var submitting = false;
+            form.addEventListener('submit', function (e) {
+                // Submit kedua saat proses masih berjalan → batalkan
+                if (submitting) {
+                    e.preventDefault();
+                    return;
+                }
+                // Kunci tombol + kasih feedback ke user
+                submitting = true;
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+                btn.textContent = 'mengirim...';
             });
         })();
     </script>

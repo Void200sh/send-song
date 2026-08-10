@@ -87,14 +87,17 @@
 }
 
 /* ─── ANIMASI MARQUEE ─── */
-/* Teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
+/* Kartu/teks jalan dari kanan ke kiri, 30 detik sekali putaran, loop terus */
+/* will-change: transform — biar GPU yang nge-render, halus di mobile */
 .animate-marquee {
     animation: marquee 30s linear infinite;
+    will-change: transform;
 }
 
-/* Animasi marquee reverse — teks jalan dari kiri ke kanan */
+/* Animasi marquee reverse — kartu/teks jalan dari kiri ke kanan */
 .animate-marquee-reverse {
     animation: marquee-reverse 30s linear infinite;
+    will-change: transform;
 }
 
 /* ─── KEYFRAMES MARQUEE ─── */
@@ -110,4 +113,31 @@
 @keyframes marquee-reverse {
     0% { transform: translateX(-50%); }
     100% { transform: translateX(0); }
+}
+
+/* ─── TEMA KARTU PESAN (ala chat TikTok) ─── */
+/* Gradasi pastel terang — teks gelap yang sudah dipakai tetap kebaca. */
+/* Dekorasi emoji melayang dirender lewat partial theme-decor.blade.php. */
+.theme-classic {
+    background-color: #ffffff;
+}
+
+.theme-bunga {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 45%, #fbcfe8 100%);
+}
+
+.theme-senja {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fecdd3 100%);
+}
+
+.theme-laut {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 45%, #bae6fd 100%);
+}
+
+.theme-lavender {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 45%, #e9d5ff 100%);
+}
+
+.theme-mint {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 45%, #bbf7d0 100%);
 }
