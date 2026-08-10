@@ -148,20 +148,20 @@
                             </div>
                         </div>
 
-                        {{-- Music trimmer ala Instagram Stories: strip (waveform + kotak pilihan + handle) bergerak, playhead tetap di tengah --}}
-                        <div id="clip-waveform" class="relative h-16 rounded-2xl bg-gray-100 overflow-hidden cursor-pointer select-none touch-none">
+                        {{-- Music trimmer ala Instagram Stories: strip lebih lebar dari layar & bisa DIGESER (pan) agar presisi di mobile --}}
+                        <div id="clip-waveform" class="relative h-16 rounded-2xl bg-gray-100 overflow-hidden cursor-pointer select-none touch-pan-y">
                             <div id="wave-strip" class="absolute inset-y-0 left-0 will-change-transform" style="width:100%">
                                 <canvas id="clip-wave-canvas" class="absolute inset-0 h-full" style="width:100%" width="600" height="128"></canvas>
                                 <div id="clip-selection" class="absolute inset-y-1 left-0 rounded-xl bg-white/75 shadow-[0_2px_10px_rgba(0,0,0,0.18)] ring-1 ring-black/5 will-change-transform cursor-grab touch-none" style="display:none"></div>
-                                <div id="wave-handle-l" class="absolute inset-y-1 left-0 w-7 z-10 cursor-ew-resize touch-none hidden will-change-transform" style="transform:translateX(-50%)">
-                                    <div class="absolute inset-y-0 w-7 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22)] flex items-center justify-center gap-[3px]">
+                                <div id="wave-handle-l" class="absolute inset-y-0 left-0 w-10 z-10 cursor-ew-resize touch-none hidden will-change-transform" style="transform:translateX(-50%)">
+                                    <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-7 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22)] flex items-center justify-center gap-[3px]">
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
                                     </div>
                                 </div>
-                                <div id="wave-handle-r" class="absolute inset-y-1 left-0 w-7 z-10 cursor-ew-resize touch-none hidden will-change-transform" style="transform:translateX(-50%)">
-                                    <div class="absolute inset-y-0 w-7 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22)] flex items-center justify-center gap-[3px]">
+                                <div id="wave-handle-r" class="absolute inset-y-0 left-0 w-10 z-10 cursor-ew-resize touch-none hidden will-change-transform" style="transform:translateX(-50%)">
+                                    <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-7 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22)] flex items-center justify-center gap-[3px]">
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
                                         <span class="w-0.5 h-2.5 rounded-full bg-gray-400"></span>
@@ -171,6 +171,9 @@
                                     <span class="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-2 rounded-b-full bg-amber-400"></span>
                                 </div>
                             </div>
+                            {{-- Bayangan tepi: isyarat bahwa waveform bisa digeser --}}
+                            <div id="wave-fade-l" class="pointer-events-none absolute inset-y-0 left-0 w-8 z-[3] hidden bg-gradient-to-r from-gray-100/70 to-transparent"></div>
+                            <div id="wave-fade-r" class="pointer-events-none absolute inset-y-0 right-0 w-8 z-[3] hidden bg-gradient-to-l from-gray-100/70 to-transparent"></div>
                         </div>
 
                         {{-- Label waktu di bawah waveform --}}
@@ -179,6 +182,7 @@
                             <span id="wave-dur-label" class="font-semibold text-gray-700">full lagu</span>
                             <span id="wave-end-label">0:30</span>
                         </div>
+                        <p class="text-[10px] text-gray-400 text-center">geser waveform untuk menjelajah &middot; tap untuk putar</p>
                     </div>
                 </div>
 

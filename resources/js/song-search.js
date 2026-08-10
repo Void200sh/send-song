@@ -79,6 +79,8 @@ const handleR = document.getElementById('wave-handle-r');
 const waveStartLabel = document.getElementById('wave-start-label');
 const waveEndLabel = document.getElementById('wave-end-label');
 const waveDurLabel = document.getElementById('wave-dur-label');
+const fadeL = document.getElementById('wave-fade-l');
+const fadeR = document.getElementById('wave-fade-r');
 const inpClipStart = hidden('inp-clip-start');
 const inpClipEnd = hidden('inp-clip-end');
 
@@ -107,7 +109,10 @@ let reviewPoll = null;
 let reviewStartAt = null;
 let durCorrected = false; // durasi video YT sudah dikoreksi (sekali per lagu, sebelum mulai)
 
-let stripW = 0; // lebar strip = lebar viewport (seluruh lagu dimampatkan; tanpa geser)
+let stripW = 0;   // lebar strip = viewport × zoom (lebih lebar dari layar supaya bisa digeser)
+let panX = 0;     // posisi geser strip (px)
+let maxPan = 0;   // batas geser = stripW - viewport
+let cachedVw = 0; // lebar viewport tersimpan (untuk batas geser & center)
 
 let waveBars = [];
 let audioCtx = null;
@@ -141,9 +146,14 @@ function pseudoBars(n, seedStr) {
     return bars;
 }
 
-// ── UKURAN STRIP: seluruh lagu dimampatkan selebar viewport (seperti trimmer Instagram) → seleksi bisa menjangkau sampai akhir lagu ──
-function stripMetrics() {
+// ── UKURAN STRIP: 1.5–3× lebar viewport (zoom makin besar utk lagu panjang) → waveform bisa DIGESER seperti trimmer Instagram, seleksi presisi di mobile ──
+function viewportWidth() {
     return Math.max(10, waveWrap.getBoundingClientRect().width);
+}
+
+function stripMetrics() {
+    const zoom = Math.min(3, Math.max(1.5, maxSeconds / 80));
+    return Math.max(10, Math.round(viewportWidth() * zoom));
 }
 
 function waveBarsFor() {
@@ -152,13 +162,33 @@ function waveBarsFor() {
 
 function setStrip() {
     if (!hasClip) return;
-    const w = stripMetrics();
-    if (stripW !== w) {
-        stripW = w;
-        waveStrip.style.width = `${w}px`;
-        drawWave();
-        renderSelection();
-    }
+    const vw = viewportWidth();
+    const sw = stripMetrics();
+    if (stripW === sw && cachedVw === vw) return;
+    stripW = sw;
+    cachedVw = vw;
+    maxPan = Math.max(0, stripW - cachedVw);
+    panX = Math.max(0, Math.min(panX, maxPan));
+    waveStrip.style.width = `${stripW}px`;
+    updateStrip();
+    drawWave();
+    renderSelection();
+}
+
+// Geser strip (waveform): translate + tampilkan/sembunyikan bayangan tepi sebagai isyarat bisa digeser
+function updateStrip() {
+    waveStrip.style.transform = `translateX(${-panX}px)`;
+    if (fadeL) fadeL.classList.toggle('hidden', panX <= 0);
+    if (fadeR) fadeR.classList.toggle('hidden', maxPan <= 0 || panX >= maxPan);
+}
+
+// Pusatkan klip pada viewport (dipakai saat masuk mode klip)
+function centerClipInView() {
+    if (!hasClip || maxPan <= 0) return;
+    const sPx = (clipStart / Math.max(1, maxSeconds)) * stripW;
+    const ePx = (clipEnd / Math.max(1, maxSeconds)) * stripW;
+    panX = Math.max(0, Math.min(sPx - (cachedVw - (ePx - sPx)) / 2, maxPan));
+    updateStrip();
 }
 
 function loadWave(track) {
@@ -303,6 +333,7 @@ function setClipMode(mode) {
     setClipModeBtnActive();
     updateSelection();
     updatePlayhead();
+    if (mode === 'klip') centerClipInView();
 }
 
 function updateSelection() {
@@ -334,7 +365,14 @@ function updatePlayhead() {
         cur = clipMode === 'klip' ? clipStart : 0;
     }
     cur = Math.max(0, Math.min(cur, maxSeconds));
-    clipPlayhead.style.transform = `translateX(${(cur / Math.max(1, maxSeconds)) * stripW}px) translateX(-50%)`;
+    const pSx = (cur / Math.max(1, maxSeconds)) * stripW;
+
+    // Playhead di luar layar saat putar → strip ikut digeser biar posisi tetap terlihat (kecuali lagi drag)
+    if (reviewActive && !dragHandle && maxPan > 0 && (pSx < panX + 12 || pSx > panX + cachedVw - 12)) {
+        panX = Math.max(0, Math.min(pSx - cachedVw / 2, maxPan));
+        updateStrip();
+    }
+    clipPlayhead.style.transform = `translateX(${pSx}px) translateX(-50%)`;
 }
 
 let playheadRaf = null;
@@ -426,8 +464,7 @@ async function refineMaxDurationBehindPlayback() {
                 maxSeconds = t;
                 if (clipEnd > maxSeconds) clipEnd = maxSeconds;
                 if (clipStart > Math.max(0, maxSeconds - 1)) clipStart = Math.max(0, maxSeconds - 1);
-                renderSelection();
-                drawWave();
+                setStrip();
                 updatePlayhead();
             }
             return;
@@ -566,6 +603,7 @@ function resetClip() {
     maxSeconds = 30;
     previewLengthKnown = 30;
     durCorrected = false;
+    panX = 0;
     waveBars = [];
     setStrip();
     renderSelection();
@@ -587,6 +625,7 @@ function selectTrackState(track) {
     reviewSource = 'none';
     reviewStartAt = null;
     durCorrected = false;
+    panX = 0;
     stopReviewPoll();
     window.storyReview?.pause();
     setClipModeBtnActive();
@@ -599,64 +638,71 @@ function selectTrackState(track) {
     previewAudio.pause();
 }
 
-// ── INTERAKSI TRIM: drag handle L/R (min 1 dtk, maks 30 dtk), drag kotak pilihan, tap → seek (tanpa pan) ──
-let dragHandle = null; // 'l' | 'r' | 'window' | null
-let downX = 0;
-let winDown = null; // posisi awal (x strip, clipStart, clipEnd) saat drag kotak
-let tapPending = null; // {x} utk dibedakan tap vs geser (geser = batal, tanpa pan)
+// ── INTERAKSI TRIM: drag handle L/R, drag kotak pilihan, drag BACKGROUND = geser waveform (pan), tap → seek ──
+let dragHandle = null; // 'l' | 'r' | 'window' | 'pan' | null
+let downX = 0;         // posisi pointer saat mula (clientX)
+let downPan = 0;       // panX saat mula (utk drag background)
+let winDown = null;    // posisi awal (x strip, clipStart, clipEnd) saat drag kotak
+let tapPending = null; // {x (koordinat strip), t} utk membedakan tap vs geser (geser = batal)
+let wrapRect = null;   // rect #clip-waveform dicache saat pointerdown (biar drag tetap mulus)
 
-function stripX(clientX) {
-    return clientX - waveWrap.getBoundingClientRect().left;
+// posisi pointer dalam koordinat STRIP (= viewport + pan)
+function stripXOf(clientX) {
+    const rect = wrapRect || waveWrap.getBoundingClientRect();
+    return panX + (clientX - rect.left);
 }
 
 if (hasClip) {
+    setStrip();
+
     waveWrap.addEventListener('pointerdown', (e) => {
         const isKlip = clipMode === 'klip';
-        tapPending = { x: stripX(e.clientX), t: Date.now() };
+        wrapRect = waveWrap.getBoundingClientRect();
+        tapPending = { x: stripXOf(e.clientX), t: Date.now() };
         downX = e.clientX;
+        downPan = panX;
 
         if (isKlip && e.target.closest('#wave-handle-l')) {
             e.preventDefault();
             dragHandle = 'l';
             tapPending = null;
             waveWrap.setPointerCapture(e.pointerId);
-            moveHandle(e);
+            moveHandle(e.clientX);
         } else if (isKlip && e.target.closest('#wave-handle-r')) {
             e.preventDefault();
             dragHandle = 'r';
             tapPending = null;
             waveWrap.setPointerCapture(e.pointerId);
-            moveHandle(e);
+            moveHandle(e.clientX);
         } else if (isKlip && e.target.closest('#clip-selection')) {
             e.preventDefault();
             dragHandle = 'window';
-            winDown = { x: stripX(e.clientX), s0: clipStart, e0: clipEnd };
+            winDown = { x: stripXOf(e.clientX), s0: clipStart, e0: clipEnd };
             waveWrap.setPointerCapture(e.pointerId);
         } else {
-            // background: diam = tap (seek), digeser = batal
+            // background: digeser = PAN strip (waveform ikut geser), diam = tap (seek)
+            dragHandle = 'pan';
             waveWrap.setPointerCapture(e.pointerId);
         }
     });
 
     waveWrap.addEventListener('pointermove', (e) => {
-        if (dragHandle === 'l' || dragHandle === 'r') {
-            moveHandle(e);
-            return;
-        }
-        if (dragHandle === 'window') {
+        if (dragHandle === 'l' || dragHandle === 'r' || dragHandle === 'window') {
             if (tapPending && (Math.abs(e.clientX - downX) > 5 || Date.now() - tapPending.t > 350)) {
                 tapPending = null;
             }
-            if (!tapPending) {
-                const x = stripX(e.clientX);
-                const span = winDown.e0 - winDown.s0;
-                const ns = Math.max(0, Math.min(Math.round(winDown.s0 + ((x - winDown.x) / Math.max(1, stripW)) * maxSeconds), maxSeconds - span));
-                if (ns !== clipStart) {
-                    clipStart = ns;
-                    clipEnd = ns + span;
-                    updateSelection();
-                }
+            if (dragHandle === 'window' && tapPending) return; // masih kemungkinan tap — jangan geser dulu
+            lastPanX = e.clientX;
+            moveHandle(e.clientX);
+            startEdgePan();
+            return;
+        }
+        if (dragHandle === 'pan') {
+            if (tapPending && (Math.abs(e.clientX - downX) > 4 || Date.now() - tapPending.t > 350)) {
+                tapPending = null;
             }
+            panX = Math.max(0, Math.min(downPan - (e.clientX - downX), maxPan));
+            updateStrip();
             return;
         }
         if (tapPending && (Math.abs(e.clientX - downX) > 5 || Date.now() - tapPending.t > 350)) {
@@ -664,7 +710,44 @@ if (hasClip) {
         }
     });
 
+    // Auto-pan kontinu: jari/kursor di tepi viewport saat drag handle/kotak → strip terus ikut geser (hold = geser terus)
+    const EDGE = 28;
+    let lastPanX = null;  // clientX terakhir saat drag handle/kotak
+    let edgePanRaf = null;
+
+    function startEdgePan() {
+        if (edgePanRaf) return;
+        const step = () => {
+            const dragging = dragHandle === 'l' || dragHandle === 'r' || dragHandle === 'window';
+            if (!dragging || lastPanX == null) { edgePanRaf = null; return; }
+            const rect = wrapRect || waveWrap.getBoundingClientRect();
+            const vx = lastPanX - rect.left;
+            let target = panX;
+            if (vx < EDGE && panX > 0) target = Math.max(0, panX - 5);
+            else if (vx > rect.width - EDGE && panX < maxPan) target = Math.min(maxPan, panX + 5);
+            if (target !== panX) {
+                panX = target;
+                updateStrip();
+                moveHandle(lastPanX);
+                edgePanRaf = requestAnimationFrame(step);
+            } else {
+                edgePanRaf = null;
+            }
+        };
+        edgePanRaf = requestAnimationFrame(step);
+    }
+
+    function stopEdgePan() {
+        if (edgePanRaf) {
+            cancelAnimationFrame(edgePanRaf);
+            edgePanRaf = null;
+        }
+    }
+
     const endDrag = () => {
+        stopEdgePan();
+        lastPanX = null;
+        wrapRect = null;
         if (tapPending) {
             const sec = Math.round((tapPending.x / Math.max(1, stripW)) * maxSeconds);
             seekReviewAt(sec);
@@ -674,10 +757,32 @@ if (hasClip) {
         tapPending = null;
     };
     waveWrap.addEventListener('pointerup', endDrag);
-    waveWrap.addEventListener('pointercancel', endDrag);
+    // Geser vertikal (scroll halaman) membatalkan drag → jangan dianggap tap
+    waveWrap.addEventListener('pointercancel', () => {
+        stopEdgePan();
+        lastPanX = null;
+        wrapRect = null;
+        dragHandle = null;
+        winDown = null;
+        tapPending = null;
+    });
 
-    function moveHandle(e) {
-        const sec = Math.max(0, Math.min(Math.round((stripX(e.clientX) / Math.max(1, stripW)) * maxSeconds), maxSeconds));
+    // Scroll di atas waveform: horizontal (trackpad) atau Shift+scroll = geser waveform; scroll biasa tetap scroll halaman
+    waveWrap.addEventListener('wheel', (e) => {
+        const dx = e.deltaX;
+        if (dx !== 0) {
+            e.preventDefault();
+            panX = Math.max(0, Math.min(panX + dx, maxPan));
+            updateStrip();
+        } else if (e.shiftKey) {
+            e.preventDefault();
+            panX = Math.max(0, Math.min(panX + e.deltaY, maxPan));
+            updateStrip();
+        }
+    }, { passive: false });
+
+    function moveHandle(clientX) {
+        const sec = Math.max(0, Math.min(Math.round((stripXOf(clientX) / Math.max(1, stripW)) * maxSeconds), maxSeconds));
         if (dragHandle === 'l') {
             // kiri: boleh geser, tapi span maks 30 dtk (tidak melewati batas kanan)
             const lo = Math.max(0, clipEnd - 30);
@@ -688,6 +793,15 @@ if (hasClip) {
             const hi = Math.min(maxSeconds, clipStart + 30);
             clipEnd = Math.max(clipStart + 1, Math.min(sec, hi));
             updateSelection();
+        } else if (dragHandle === 'window') {
+            const x = stripXOf(clientX);
+            const span = winDown.e0 - winDown.s0;
+            const ns = Math.max(0, Math.min(Math.round(winDown.s0 + ((x - winDown.x) / Math.max(1, stripW)) * maxSeconds), maxSeconds - span));
+            if (ns !== clipStart) {
+                clipStart = ns;
+                clipEnd = ns + span;
+                updateSelection();
+            }
         }
     }
 
