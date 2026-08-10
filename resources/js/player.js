@@ -5,6 +5,7 @@ let pendingCard = null;
 let apiReady = false;
 let playerReady = false;   // onReady player YouTube sudah kepanggil
 let currentVideoId = null; // video yang lagi dimuat di player (buat deteksi pre-warm)
+let playerHasVideo = false; // player sudah punya video (di-cue/dimuat) — biar fast-path gak salah
 let pollTimer = null;
 let seeking = false;
 
@@ -108,10 +109,32 @@ function setPlayingState(playing) {
     activeCard.querySelector('[data-icon-pause]').classList.toggle('hidden', !playing);
 }
 
+// Baca durasi asli dari player setelah video di-cue (metadata butuh sesaat),
+// buat kartu yang labelnya masih "0:00" (pesan lama tanpa durasi di DB).
+function fillRealDuration(durEl) {
+    if (!durEl) return;
+    let tries = 0;
+    const read = () => {
+        if (!player) return;
+        const d = player.getDuration();
+        if (d > 0 && isFinite(d)) {
+            durEl.textContent = fmt(d);
+            return;
+        }
+        if (++tries < 24) setTimeout(read, 250);
+    };
+    setTimeout(read, 300);
+}
+
 function createPlayer(card, autoplay = true) {
     currentVideoId = card.dataset.videoId;
+    // PENTING: player dibuat TANPA videoId. Konstruktor YT.Player yang diberi videoId
+    // berperilaku seperti loadVideoById — bisa langsung MUTER otomatis di browser yang
+    // mengizinkan autoplay (Media Engagement Index tinggi). Itulah kenapa pas halaman
+    // browse/detail dibuka, lagu terbaru (kartu pertama hasil pre-warm) ikut bunyi sendiri.
+    // Sekarang video pre-warm di-cue manual via cueVideoById (siap TANPA muter),
+    // dan autoplay:0 dipasang eksplisit sebagai pengaman ganda.
     player = new YT.Player('yt-audio-host', {
-        videoId: currentVideoId,
         width: 1,
         height: 1,
         playerVars: {
@@ -121,29 +144,42 @@ function createPlayer(card, autoplay = true) {
             fs: 0,
             rel: 0,
             modestbranding: 1,
+            autoplay: 0,
         },
         events: {
             onReady: () => {
                 playerReady = true;
-                // Pre-warm (autoplay=false) pasangnya saat aktifCard masih null → pakai kartu ini
                 const cardRef = activeCard || card;
                 const clip = clipFor(cardRef);
                 const durEl = cardRef?.querySelector('[data-duration]');
-                if (clip) {
-                    if (durEl) durEl.textContent = fmt(clip.end - clip.start);
-                    player.seekTo(clip.start, true);
-                } else if (durEl) {
-                    durEl.textContent = fmt(player.getDuration());
-                }
+                if (clip && durEl) durEl.textContent = fmt(clip.end - clip.start);
 
                 // Klik yang masuk pas player masih init → jalanin sekarang (paling prioritas)
                 if (pendingCard) {
+                    // Cue dulu video pre-warm biar playCard bisa fast-path kalau kartunya sama
+                    if (clip) player.cueVideoById(currentVideoId, clip.start);
+                    else player.cueVideoById(currentVideoId);
+                    playerHasVideo = true;
                     const pending = pendingCard;
                     pendingCard = null;
                     playCard(pending);
-                } else if (autoplay) {
-                    player.playVideo();
+                    return;
                 }
+                if (autoplay) {
+                    // User KLIK play sebelum API siap → putar sekarang (ada izin user).
+                    // playerHasVideo masih false di sini, jadi playCard lewat cabang
+                    // loadVideoById + play — hasilnya sama, tanpa duplikasi logika.
+                    playCard(card);
+                    return;
+                }
+                // PRE-WARM TANPA MUTER: cue video (metadata dimuat, tidak mulai putar).
+                // Label durasi asli di-refresh begitu metadata masuk (buat lagu tanpa durasi DB).
+                if (clip) player.cueVideoById(currentVideoId, clip.start);
+                else {
+                    player.cueVideoById(currentVideoId);
+                    if (durEl) fillRealDuration(durEl);
+                }
+                playerHasVideo = true;
             },
             onStateChange: (e) => {
                 if (e.data === YT.PlayerState.PLAYING) {
@@ -206,8 +242,8 @@ function playCard(card) {
     card.querySelector('[data-fallback]')?.classList.add('hidden');
 
     if (player) {
-        if (currentVideoId === card.dataset.videoId) {
-            // Video yang sama udah siap dimuat (pre-warm / baru diputar) → langsung jalan, instan
+        if (playerHasVideo && currentVideoId === card.dataset.videoId) {
+            // Video yang sama udah di-cue/dimuat (pre-warm / baru diputar) → langsung jalan, instan
             player.playVideo();
         } else {
             // Lagu beda → muat & putar. Iframe yang sama otomatis matiin audio sebelumnya,
@@ -220,6 +256,7 @@ function playCard(card) {
                 player.loadVideoById(card.dataset.videoId);
             }
             currentVideoId = card.dataset.videoId;
+            playerHasVideo = true;
             player.playVideo();
         }
     } else {
@@ -322,6 +359,7 @@ document.addEventListener('change', (e) => {
     // Ada klik play yang masuk sebelum API siap → buat player + langsung main.
     // Kalo nggak → PRE-WARM: bikin player & cue video pertama TANPA autoplay,
     // biar klik play pertama tinggal playVideo() — gak nunggu bikin iframe & load video.
+    // GAK ADA AUTOPLAY DI MANA PUN — lagu cuma muter kalau user klik tombol play.
     if (!player) {
         const card = pendingCard || document.querySelector('[data-player-card]');
         if (card) {
