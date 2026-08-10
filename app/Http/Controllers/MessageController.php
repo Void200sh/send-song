@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Services\SpamDetectionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MessageController extends Controller
 {
@@ -14,9 +16,8 @@ class MessageController extends Controller
      */
     public function index(Request $request)
     {
-        // Mulai query builder dari model Message
-        // Nanti query ini bakal ngambil data dari tabel messages
-        $query = Message::query();
+        // Pesan yang ditandai spam tidak pernah masuk feed publik.
+        $query = Message::query()->where('is_spam', false);
 
         // ─── DAFTAR KELAS ───
         // Hardcode 33 kelas (X, XI, XII × (PPLG/AKL/MPLB 3 rombel, PM 2 rombel))
@@ -69,6 +70,8 @@ class MessageController extends Controller
      */
     public function show(Message $message)
     {
+        abort_if($message->is_spam, 404);
+
         return view('messages.show', compact('message'));
     }
 
@@ -76,8 +79,11 @@ class MessageController extends Controller
      * ─── METHOD STORE — SIMPAN PESAN BARU ───
      * Dipanggil pas user submit form (POST /messages)
      */
-    public function store(Request $request)
+    public function store(Request $request, SpamDetectionService $spam)
     {
+        $identity = $spam->identity($request);
+        $spamAssessment = $spam->assess($identity, (string) $request->input('message'));
+
         // ─── VALIDASI ───
         // Pastikan data yang dikirim sesuai aturan:
         // - sender_name: opsional (nullable), harus string, maksimal 255 karakter
@@ -140,15 +146,22 @@ class MessageController extends Controller
         // Kalo gak dihapus, Laravel bakal nyoba nyimpen kolom spotify_url yang gak ada di tabel → error
         unset($validated['spotify_url']);
 
-        // ─── SIMPAN KE DATABASE ───
-        // Pake metode create() — isinya sesuai $fillable di model Message
-        Message::create($validated);
+        // ─── ANTI-SPAM ───
+        // IP dan identitas ter-normalisasi disimpan hanya untuk pesan baru.
+        $validated = array_merge($validated, $identity, [
+            'is_spam' => $spamAssessment['is_spam'],
+            'spam_reason' => $spamAssessment['spam_reason'],
+            'spam_fingerprint' => $spamAssessment['spam_fingerprint'],
+        ]);
 
-        // ─── REDIRECT ───
-        // Arahkan user ke halaman browse, filter sesuai kelas yang dipilih
-        // Kirim flash message 'success' biar tampil notifikasi hijau
+        // Pesan spam tetap disimpan untuk audit admin, tetapi disembunyikan dari publik.
+        $message = DB::transaction(fn () => Message::create($validated));
+        $spam->recordAndMaybeBan($message);
+
         return redirect()->route('messages.index')
-            ->with('success', 'Pesan berhasil dikirim!');
+            ->with('success', $message->is_spam
+                ? 'Pesan diterima dan sedang diperiksa.'
+                : 'Pesan berhasil dikirim!');
     }
 
     /**

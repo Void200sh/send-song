@@ -16,6 +16,12 @@ class Message extends Model
     // Kalo kolom gak ada di sini, bakal ditolak (mass assignment protection)
     protected $fillable = [
         'sender_name',      // string/null — nama pengirim (opsional, anonim kalo kosong)
+        'ip_address',
+        'sender_key',
+        'spam_identity_key',
+        'spam_fingerprint',
+        'is_spam',
+        'spam_reason',
         'recipient_name',   // string — nama penerima pesan
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
         'message',          // text — isi pesan
