@@ -152,10 +152,13 @@
                 </div>
             @endif
 
-            {{-- Daftar balasan --}}
-            @if ($message->replies->count() > 0)
+            {{-- Daftar balasan — komentar root + anaknya (reply komentar, 1 tingkat) --}}
+            @php
+                $rootReplies = $message->replies->whereNull('parent_id');
+            @endphp
+            @if ($rootReplies->count() > 0)
                 <div class="space-y-4">
-                    @foreach ($message->replies as $reply)
+                    @foreach ($rootReplies as $reply)
                         @php
                             $replyCounts = $reply->reactionCounts();
                             $replyMine = $myReplyReactions[$reply->id] ?? [];
@@ -166,33 +169,108 @@
                                 style="background:{{ $reply->sender_name ? 'hsl(' . (crc32($reply->sender_name) % 360) . ' 60% 93%)' : '#f3f4f6' }};color:{{ $reply->sender_name ? 'hsl(' . (crc32($reply->sender_name) % 360) . ' 40% 32%)' : '#9ca3af' }}">
                                 {{ mb_strtoupper(mb_substr($reply->sender_name ?: '?', 0, 1)) }}
                             </div>
-                            <div class="flex-1 min-w-0 bg-gray-50 border border-[#E9E9E9] rounded-2xl rounded-tl-md px-4 py-3">
-                                <div class="flex items-baseline gap-2 flex-wrap">
-                                    <span class="text-sm font-semibold text-gray-900">{{ $reply->sender_name ?: 'anonim' }}</span>
-                                    <span class="text-[11px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
-                                </div>
-                                <p class="text-sm text-gray-700 mt-1 break-words leading-relaxed">{!! \App\Support\EmojiText::small($reply->body) !!}</p>
+                            <div class="flex-1 min-w-0">
+                                <div class="bg-gray-50 border border-[#E9E9E9] rounded-2xl rounded-tl-md px-4 py-3">
+                                    <div class="flex items-baseline gap-2 flex-wrap">
+                                        <span class="text-sm font-semibold text-gray-900">{{ $reply->sender_name ?: 'anonim' }}</span>
+                                        <span class="text-[11px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
+                                    </div>
+                                    @if ($reply->sticker_path)
+                                        <img src="{{ asset('storage/' . $reply->sticker_path) }}"
+                                            alt="{{ $reply->sender_name ?: 'anonim' }} kirim stiker"
+                                            loading="lazy"
+                                            class="mt-2 w-28 h-28 sm:w-32 sm:h-32 object-contain rounded-lg">
+                                    @endif
+                                    @if ($reply->body)
+                                        <p class="text-sm text-gray-700 mt-1 break-words leading-relaxed">{!! \App\Support\EmojiText::small($reply->body) !!}</p>
+                                    @endif
 
-                                {{-- Reaksi emoji per balasan (toggle ala WhatsApp) — chip selalu dirender, disembunyikan saat count 0 & tidak aktif --}}
-                                <div class="mt-2.5 flex flex-wrap items-center gap-1.5" data-reply-reactions data-reply-id="{{ $reply->id }}">
-                                    @foreach (\App\Models\Message::REACTION_EMOJIS as $emoji)
-                                        @php
-                                            $count = $replyCounts[$emoji] ?? 0;
-                                            $active = in_array($emoji, $replyMine, true);
-                                        @endphp
-                                        <button type="button" data-react-reply data-reply-id="{{ $reply->id }}" data-emoji="{{ $emoji }}"
-                                            data-active="{{ $active ? '1' : '0' }}"
-                                            aria-pressed="{{ $active ? 'true' : 'false' }}"
-                                            title="{{ $active ? 'Batalkan reaksi' : 'Beri reaksi' }}"
-                                            class="{{ $count === 0 && ! $active ? 'hidden' : '' }} flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs transition-all cursor-pointer select-none
-                                                {{ $active
-                                                    ? 'bg-[#171717] border-[#171717] text-white shadow-sm'
-                                                    : 'bg-white/80 border-[#E9E9E9] text-gray-500 hover:border-[#171717] hover:text-gray-900' }}">
-                                            <span class="text-sm leading-none">{{ $emoji }}</span>
-                                            <span data-reply-react-count class="font-semibold tabular-nums">{{ $count }}</span>
-                                        </button>
-                                    @endforeach
+                                    {{-- Reaksi emoji per balasan (toggle ala WhatsApp) — chip selalu dirender, disembunyikan saat count 0 & tidak aktif --}}
+                                    <div class="mt-2.5 flex flex-wrap items-center gap-1.5" data-reply-reactions data-reply-id="{{ $reply->id }}">
+                                        @foreach (\App\Models\Message::REACTION_EMOJIS as $emoji)
+                                            @php
+                                                $count = $replyCounts[$emoji] ?? 0;
+                                                $active = in_array($emoji, $replyMine, true);
+                                            @endphp
+                                            <button type="button" data-react-reply data-reply-id="{{ $reply->id }}" data-emoji="{{ $emoji }}"
+                                                data-active="{{ $active ? '1' : '0' }}"
+                                                aria-pressed="{{ $active ? 'true' : 'false' }}"
+                                                title="{{ $active ? 'Batalkan reaksi' : 'Beri reaksi' }}"
+                                                class="{{ $count === 0 && ! $active ? 'hidden' : '' }} flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs transition-all cursor-pointer select-none
+                                                    {{ $active
+                                                        ? 'bg-[#171717] border-[#171717] text-white shadow-sm'
+                                                        : 'bg-white/80 border-[#E9E9E9] text-gray-500 hover:border-[#171717] hover:text-gray-900' }}">
+                                                <span class="text-sm leading-none">{{ $emoji }}</span>
+                                                <span data-reply-react-count class="font-semibold tabular-nums">{{ $count }}</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
                                 </div>
+                                {{-- Tombol balas komentar — set konteks di form utama --}}
+                                <button type="button" data-reply-to
+                                    data-reply-id="{{ $reply->id }}"
+                                    data-reply-name="{{ $reply->sender_name ?: 'anonim' }}"
+                                    class="mt-1.5 ml-3 inline-flex items-center gap-1 text-[11px] font-medium text-gray-400 hover:text-gray-950 transition-colors cursor-pointer bg-transparent border-0 p-0">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                    balas
+                                </button>
+
+                                {{-- ─── ANAK-ANAK (reply komentar, indent + garis) ─── --}}
+                                @if ($reply->children->count() > 0)
+                                    <div class="mt-3 ml-4 sm:ml-9 pl-3 sm:pl-5 border-l-2 border-[#E9E9E9] space-y-3">
+                                        @foreach ($reply->children as $child)
+                                            @php
+                                                $childCounts = $child->reactionCounts();
+                                                $childMine = $myReplyReactions[$child->id] ?? [];
+                                            @endphp
+                                            <div class="flex gap-2.5">
+                                                <div class="w-7 h-7 shrink-0 rounded-full border border-[#E9E9E9] flex items-center justify-center text-xs font-bold shadow-sm"
+                                                    style="background:{{ $child->sender_name ? 'hsl(' . (crc32($child->sender_name) % 360) . ' 60% 93%)' : '#f3f4f6' }};color:{{ $child->sender_name ? 'hsl(' . (crc32($child->sender_name) % 360) . ' 40% 32%)' : '#9ca3af' }}">
+                                                    {{ mb_strtoupper(mb_substr($child->sender_name ?: '?', 0, 1)) }}
+                                                </div>
+                                                <div class="flex-1 min-w-0 bg-white border border-[#E9E9E9] rounded-2xl rounded-tl-md px-3.5 py-2.5">
+                                                    <div class="flex items-baseline gap-2 flex-wrap">
+                                                        <span class="text-sm font-semibold text-gray-900">{{ $child->sender_name ?: 'anonim' }}</span>
+                                                        <span class="text-[11px] text-gray-400">{{ $child->created_at->diffForHumans() }}</span>
+                                                    </div>
+                                                    @if ($child->sticker_path)
+                                                        <img src="{{ asset('storage/' . $child->sticker_path) }}"
+                                                            alt="{{ $child->sender_name ?: 'anonim' }} kirim stiker"
+                                                            loading="lazy"
+                                                            class="mt-1.5 w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-lg">
+                                                    @endif
+                                                    @if ($child->body)
+                                                        <p class="text-sm text-gray-700 mt-1 break-words leading-relaxed">
+                                                            <span class="font-semibold text-gray-900">membalas {{ '@' . ($reply->sender_name ?: 'anonim') }}</span>
+                                                            {!! \App\Support\EmojiText::small($child->body) !!}
+                                                        </p>
+                                                    @endif
+
+                                                    {{-- Reaksi emoji anak (delegation JS yang sama otomatis jalan) --}}
+                                                    <div class="mt-2 flex flex-wrap items-center gap-1.5" data-reply-reactions data-reply-id="{{ $child->id }}">
+                                                        @foreach (\App\Models\Message::REACTION_EMOJIS as $emoji)
+                                                            @php
+                                                                $count = $childCounts[$emoji] ?? 0;
+                                                                $active = in_array($emoji, $childMine, true);
+                                                            @endphp
+                                                            <button type="button" data-react-reply data-reply-id="{{ $child->id }}" data-emoji="{{ $emoji }}"
+                                                                data-active="{{ $active ? '1' : '0' }}"
+                                                                aria-pressed="{{ $active ? 'true' : 'false' }}"
+                                                                title="{{ $active ? 'Batalkan reaksi' : 'Beri reaksi' }}"
+                                                                class="{{ $count === 0 && ! $active ? 'hidden' : '' }} flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs transition-all cursor-pointer select-none
+                                                                    {{ $active
+                                                                        ? 'bg-[#171717] border-[#171717] text-white shadow-sm'
+                                                                        : 'bg-white/80 border-[#E9E9E9] text-gray-500 hover:border-[#171717] hover:text-gray-900' }}">
+                                                                <span class="text-sm leading-none">{{ $emoji }}</span>
+                                                                <span data-reply-react-count class="font-semibold tabular-nums">{{ $count }}</span>
+                                                            </button>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -211,11 +289,21 @@
                         {{ old('sender_name') ? mb_strtoupper(mb_substr(old('sender_name'), 0, 1)) : '?' }}
                     </div>
                     <div class="flex-1 min-w-0">
+                        <input type="hidden" name="parent_id" id="reply-parent-id" value="{{ old('parent_id') }}">
+                        {{-- Banner konteks "membalas @nama" — muncul saat klik tombol balas di komentar --}}
+                        <div data-reply-context
+                            class="hidden items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-900/20">
+                            <span class="text-xs text-blue-900">membalas <b data-reply-context-name></b></span>
+                            <button type="button" data-reply-context-cancel
+                                class="ml-auto text-[11px] font-semibold text-blue-700 hover:text-blue-950 transition-colors cursor-pointer bg-transparent border-0 p-0">
+                                batal
+                            </button>
+                        </div>
                         <input type="text" name="sender_name" id="reply-name" value="{{ old('sender_name') }}" data-reply-avatar-input
                             placeholder="nama kamu (opsional)" maxlength="255"
                             class="w-full px-3 py-2 rounded-xl border border-[#D9D9D9] text-sm text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors bg-white">
                         <div class="relative mt-2">
-                            <textarea name="body" id="reply-body" rows="3" required maxlength="1000"
+                            <textarea name="body" id="reply-body" rows="3" maxlength="1000"
                                 placeholder="tulis balasanmu di sini..."
                                 data-reply-counter
                                 class="w-full px-3 py-2.5 pr-16 rounded-xl border border-[#D9D9D9] text-sm text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors resize-none bg-white">{{ old('body') }}</textarea>
@@ -225,6 +313,43 @@
                                 <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        {{-- ─── PICKER STIKER — tombol + grid + stiker terpilih ─── --}}
+                        @if ($stickers->isNotEmpty())
+                        <input type="hidden" name="sticker_id" id="reply-sticker-id" value="{{ old('sticker_id') }}">
+                        <div class="mt-2">
+                            <button type="button" data-sticker-toggle
+                                class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-950 transition-colors cursor-pointer bg-transparent border-0 p-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12A9 9 0 1 1 12 3a9 9 0 0 1 9 9Zm-9.5 4.5h.008v.008H11.5v-.008ZM13.5 9h.008v.008H13.5V9Zm-3 0h.008v.008H10.5V9Z"/></svg>
+                                tambah stiker
+                            </button>
+                            {{-- Preview stiker terpilih — muncul saat ada pilihan --}}
+                            <div data-sticker-preview class="hidden items-center gap-2 mt-2">
+                                <img data-sticker-preview-img src="" alt="stiker terpilih"
+                                    class="w-16 h-16 object-contain rounded-lg border border-[#E9E9E9] bg-gray-50">
+                                <button type="button" data-sticker-clear
+                                    class="text-xs text-gray-400 hover:text-red-600 transition-colors cursor-pointer bg-transparent border-0 p-0">
+                                    hapus stiker
+                                </button>
+                            </div>
+                            {{-- Grid stiker (dropdown) — toggle lewat tombol --}}
+                            <div data-sticker-grid class="hidden mt-2 p-3 rounded-xl border border-[#E9E9E9] bg-gray-50">
+                                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-56 overflow-y-auto">
+                                    @foreach ($stickers as $sticker)
+                                        <button type="button" data-sticker-option
+                                            data-sticker-id="{{ $sticker->id }}"
+                                            data-sticker-url="{{ $sticker->url() }}"
+                                            title="{{ $sticker->name ?: 'stiker' }}"
+                                            class="aspect-square rounded-lg bg-white border border-[#E9E9E9] hover:border-gray-950 hover:scale-105 transition-all flex items-center justify-center cursor-pointer p-1.5">
+                                            <img src="{{ $sticker->url() }}" alt="{{ $sticker->name ?: 'stiker' }}"
+                                                loading="lazy" class="w-full h-full object-contain">
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="flex items-center justify-between mt-3">
                             <p class="text-[11px] text-gray-400">balasanmu akan tampil di bawah pesan ini</p>
                             <button type="submit"
@@ -283,6 +408,68 @@
                     var initial = nameInput.value.trim().charAt(0);
                     avatar.textContent = initial ? initial.toUpperCase() : '?';
                 });
+            }
+
+            // ─── PICKER STIKER: toggle grid, pilih, preview, hapus ───
+            var stickerToggle = document.querySelector('[data-sticker-toggle]');
+            var stickerGrid = document.querySelector('[data-sticker-grid]');
+            var stickerId = document.querySelector('#reply-sticker-id');
+            var stickerPreview = document.querySelector('[data-sticker-preview]');
+            var stickerPreviewImg = document.querySelector('[data-sticker-preview-img]');
+            if (stickerToggle && stickerGrid && stickerId) {
+                stickerToggle.addEventListener('click', function () {
+                    stickerGrid.classList.toggle('hidden');
+                });
+                stickerGrid.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-sticker-option]');
+                    if (!btn) return;
+                    stickerId.value = btn.dataset.stickerId;
+                    stickerPreviewImg.src = btn.dataset.stickerUrl;
+                    stickerPreview.classList.remove('hidden');
+                    stickerPreview.classList.add('flex');
+                    stickerGrid.classList.add('hidden');
+                });
+                var clearBtn = document.querySelector('[data-sticker-clear]');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function () {
+                        stickerId.value = '';
+                        stickerPreviewImg.removeAttribute('src');
+                        stickerPreview.classList.add('hidden');
+                        stickerPreview.classList.remove('flex');
+                    });
+                }
+            }
+
+            // ─── REPLY KOMENTAR: klik "balas" → set parent di form utama + banner konteks ───
+            var replyForm = document.getElementById('reply-form');
+            var parentId = document.getElementById('reply-parent-id');
+            var replyContext = document.querySelector('[data-reply-context]');
+            var replyContextName = document.querySelector('[data-reply-context-name]');
+            var replyBody = document.getElementById('reply-body');
+
+            function clearReplyContext() {
+                if (!parentId) return;
+                parentId.value = '';
+                if (replyContext) {
+                    replyContext.classList.add('hidden');
+                    replyContext.classList.remove('flex');
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-reply-to]');
+                if (!btn) return;
+                parentId.value = btn.dataset.replyId;
+                replyContextName.textContent = '@' + btn.dataset.replyName;
+                replyContext.classList.remove('hidden');
+                replyContext.classList.add('flex');
+                replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (replyBody) replyBody.focus();
+            });
+
+            var replyContextCancel = document.querySelector('[data-reply-context-cancel]');
+            if (replyContextCancel) {
+                replyContextCancel.addEventListener('click', clearReplyContext);
             }
         })();
     </script>

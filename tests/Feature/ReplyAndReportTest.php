@@ -7,6 +7,7 @@ use App\Models\MessageReport;
 use App\Models\MessageReply;
 use App\Models\ReplyReaction;
 use App\Models\SpamBan;
+use App\Models\Sticker;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -65,6 +66,250 @@ class ReplyAndReportTest extends TestCase
             ->assertSessionHasErrors('body');
 
         $this->assertDatabaseCount('message_replies', 0);
+    }
+
+    // ─── REPLY KOMENTAR (NESTED 1 TINGKAT) ───
+
+    public function test_visitor_can_reply_to_a_comment(): void
+    {
+        $msg = $this->createMessage();
+        $root = MessageReply::create([
+            'message_id' => $msg->id,
+            'sender_name' => 'Budi',
+            'body' => 'komentar pertama',
+            'ip_address' => '127.0.0.1',
+        ]);
+
+        $this->post(route('messages.reply', $msg), [
+            'sender_name' => 'Siti',
+            'body' => 'balasan untuk budi',
+            'parent_id' => $root->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('message_replies', [
+            'message_id' => $msg->id,
+            'parent_id' => $root->id,
+            'sender_name' => 'Siti',
+            'body' => 'balasan untuk budi',
+        ]);
+    }
+
+    public function test_reply_to_child_is_attached_to_root(): void
+    {
+        $msg = $this->createMessage();
+        $root = MessageReply::create(['message_id' => $msg->id, 'sender_name' => 'Budi', 'body' => 'root', 'ip_address' => '1.1.1.1']);
+        $child = MessageReply::create(['message_id' => $msg->id, 'parent_id' => $root->id, 'sender_name' => 'Siti', 'body' => 'anak', 'ip_address' => '2.2.2.2']);
+
+        // Membalas ke ANAK tetap menempel ke komentar ROOT (depth maksimal 1 tingkat)
+        $this->post(route('messages.reply', $msg), [
+            'sender_name' => 'Andi',
+            'body' => 'balasan lain',
+            'parent_id' => $child->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('message_replies', [
+            'parent_id' => $root->id,
+            'sender_name' => 'Andi',
+            'body' => 'balasan lain',
+        ]);
+    }
+
+    public function test_reply_to_comment_from_other_message_is_rejected(): void
+    {
+        $msg = $this->createMessage();
+        $other = $this->createMessage(['recipient_name' => 'Dewi']);
+        $foreign = MessageReply::create(['message_id' => $other->id, 'sender_name' => 'Budi', 'body' => 'komentar pesan lain', 'ip_address' => '1.1.1.1']);
+
+        $this->post(route('messages.reply', $msg), [
+            'body' => 'nyasar',
+            'parent_id' => $foreign->id,
+        ])->assertSessionHasErrors('parent_id');
+
+        $this->assertDatabaseCount('message_replies', 1);
+    }
+
+    public function test_child_replies_shown_under_parent_on_detail_page(): void
+    {
+        $msg = $this->createMessage();
+        $root = MessageReply::create(['message_id' => $msg->id, 'sender_name' => 'Budi', 'body' => 'komentar pertama', 'ip_address' => '1.1.1.1']);
+        MessageReply::create(['message_id' => $msg->id, 'parent_id' => $root->id, 'sender_name' => 'Siti', 'body' => 'balasan untuk budi', 'ip_address' => '2.2.2.2']);
+
+        $this->get(route('messages.show', $msg))
+            ->assertOk()
+            ->assertSee('komentar pertama')
+            ->assertSee('membalas @Budi')
+            ->assertSee('balasan untuk budi')
+            ->assertSee('data-reply-to');
+    }
+
+    public function test_reply_to_comment_supports_sticker(): void
+    {
+        $msg = $this->createMessage();
+        $root = MessageReply::create(['message_id' => $msg->id, 'sender_name' => 'Budi', 'body' => 'komentar', 'ip_address' => '1.1.1.1']);
+        $sticker = Sticker::create(['name' => 'love', 'path' => 'stickers/love.png']);
+
+        $this->post(route('messages.reply', $msg), [
+            'sticker_id' => $sticker->id,
+            'parent_id' => $root->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('message_replies', [
+            'parent_id' => $root->id,
+            'sticker_path' => 'stickers/love.png',
+            'body' => null,
+        ]);
+    }
+
+    public function test_admin_replies_page_shows_parent_indicator(): void
+    {
+        $user = User::factory()->create();
+        $msg = $this->createMessage();
+        $root = MessageReply::create(['message_id' => $msg->id, 'sender_name' => 'Budi', 'body' => 'komentar', 'ip_address' => '1.1.1.1']);
+        MessageReply::create(['message_id' => $msg->id, 'parent_id' => $root->id, 'sender_name' => 'Siti', 'body' => 'balasan', 'ip_address' => '2.2.2.2']);
+
+        $this->actingAs($user)
+            ->get(route('admin.replies'))
+            ->assertOk()
+            ->assertSee('membalas @Budi');
+    }
+
+    public function test_deleting_parent_comment_removes_its_children(): void
+    {
+        $user = User::factory()->create();
+        $msg = $this->createMessage();
+        $root = MessageReply::create(['message_id' => $msg->id, 'sender_name' => 'Budi', 'body' => 'root', 'ip_address' => '1.1.1.1']);
+        $child = MessageReply::create(['message_id' => $msg->id, 'parent_id' => $root->id, 'sender_name' => 'Siti', 'body' => 'anak', 'ip_address' => '2.2.2.2']);
+
+        $this->actingAs($user)
+            ->delete(route('admin.replies.destroy', $root))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('message_replies', ['id' => $root->id]);
+        $this->assertDatabaseMissing('message_replies', ['id' => $child->id]);
+    }
+
+    // ─── BALASAN STIKER ───
+
+    public function test_visitor_can_reply_with_sticker_only(): void
+    {
+        $msg = $this->createMessage();
+        $sticker = Sticker::create(['name' => 'love', 'path' => 'stickers/love.png']);
+
+        $this->post(route('messages.reply', $msg), [
+            'sticker_id' => $sticker->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('message_replies', [
+            'message_id' => $msg->id,
+            'sticker_path' => 'stickers/love.png',
+            'body' => null,
+        ]);
+    }
+
+    public function test_visitor_can_reply_with_sticker_and_text(): void
+    {
+        $msg = $this->createMessage();
+        $sticker = Sticker::create(['name' => 'senyum', 'path' => 'stickers/senyum.webp']);
+
+        $this->post(route('messages.reply', $msg), [
+            'sender_name' => 'Budi',
+            'body' => 'love banget!',
+            'sticker_id' => $sticker->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('message_replies', [
+            'message_id' => $msg->id,
+            'sender_name' => 'Budi',
+            'body' => 'love banget!',
+            'sticker_path' => 'stickers/senyum.webp',
+        ]);
+    }
+
+    public function test_reply_with_unknown_sticker_is_rejected(): void
+    {
+        $msg = $this->createMessage();
+
+        $this->post(route('messages.reply', $msg), ['sticker_id' => 9999])
+            ->assertSessionHasErrors('sticker_id');
+
+        $this->assertDatabaseCount('message_replies', 0);
+    }
+
+    public function test_reply_without_body_or_sticker_is_rejected(): void
+    {
+        $msg = $this->createMessage();
+
+        $this->post(route('messages.reply', $msg), ['sender_name' => 'Budi', 'body' => '   '])
+            ->assertSessionHasErrors('body');
+
+        $this->assertDatabaseCount('message_replies', 0);
+    }
+
+    public function test_sticker_picker_rendered_on_detail_page_when_stickers_exist(): void
+    {
+        $msg = $this->createMessage();
+        $sticker = Sticker::create(['name' => 'love', 'path' => 'stickers/love.png']);
+
+        $this->get(route('messages.show', $msg))
+            ->assertOk()
+            ->assertSee('data-sticker-option')
+            ->assertSee('tambah stiker')
+            ->assertSee($sticker->url());
+    }
+
+    public function test_sticker_thumbnail_shown_in_reply(): void
+    {
+        $msg = $this->createMessage();
+        MessageReply::create([
+            'message_id' => $msg->id,
+            'sender_name' => 'Budi',
+            'body' => null,
+            'sticker_path' => 'stickers/love.png',
+            'ip_address' => '127.0.0.1',
+        ]);
+
+        $this->get(route('messages.show', $msg))
+            ->assertOk()
+            ->assertSee('stickers/love.png');
+    }
+
+    // ─── ADMIN: KELOLA STIKER ───
+
+    public function test_admin_dashboard_renders_sticker_section(): void
+    {
+        $user = User::factory()->create();
+        Sticker::create(['name' => 'love', 'path' => 'stickers/love.png']);
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Kelola Stiker')
+            ->assertSee('stickers/love.png');
+    }
+
+    public function test_admin_can_store_sticker(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('admin.stickers.store'), [
+                'name' => 'teriak',
+                'sticker' => \Illuminate\Http\UploadedFile::fake()->image('teriak.png'),
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('stickers', ['name' => 'teriak']);
+    }
+
+    public function test_admin_can_delete_sticker(): void
+    {
+        $user = User::factory()->create();
+        $sticker = Sticker::create(['name' => 'love', 'path' => 'stickers/love.png']);
+
+        $this->actingAs($user)
+            ->delete(route('admin.stickers.destroy', $sticker))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('stickers', ['id' => $sticker->id]);
     }
 
     public function test_replies_shown_on_detail_page(): void

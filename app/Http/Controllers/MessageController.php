@@ -8,6 +8,7 @@ use App\Models\MessageReply;
 use App\Models\MessageReport;
 use App\Models\MessageView;
 use App\Models\ReplyReaction;
+use App\Models\Sticker;
 use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Illuminate\Http\Request;
@@ -81,21 +82,35 @@ class MessageController extends Controller
         $this->recordViews([$message], request());
 
         // Reaksi + balasan (beserta reaksi tiap balasan): load sekalian biar gak N+1.
-        $message->load('reactions', 'replies.reactions');
+        // Balasan dimuat bersarang 1 tingkat: komentar root + anaknya (reply komentar).
+        $message->load('reactions', 'replies.reactions', 'replies.children.reactions');
         $myReactions = $message->reactions
             ->where('ip_address', SpamDetectionService::clientIp(request()))
             ->pluck('emoji')
             ->all();
 
         // Emoji yang sudah direaksikan pengunjung ini per balasan (untuk state aktif)
+        // — termasuk reaksi di anak (reply komentar).
         $myReplyReactions = $message->replies->flatMap(function ($reply) {
-            return [$reply->id => $reply->reactions
+            $mine = [$reply->id => $reply->reactions
                 ->where('ip_address', SpamDetectionService::clientIp(request()))
                 ->pluck('emoji')
                 ->all()];
+
+            foreach ($reply->children as $child) {
+                $mine[$child->id] = $child->reactions
+                    ->where('ip_address', SpamDetectionService::clientIp(request()))
+                    ->pluck('emoji')
+                    ->all();
+            }
+
+            return $mine;
         })->all();
 
-        return view('messages.show', compact('message', 'myReactions', 'myReplyReactions'));
+        // Stiker aktif buat picker di form balasan (hanya yang diaktifkan admin)
+        $stickers = Sticker::where('is_active', true)->latest()->get();
+
+        return view('messages.show', compact('message', 'myReactions', 'myReplyReactions', 'stickers'));
     }
 
     /**
@@ -109,17 +124,59 @@ class MessageController extends Controller
 
         $validated = $request->validate([
             'sender_name' => 'nullable|string|max:255',
-            'body' => 'required|string|max:1000',
+            'body' => 'nullable|string|max:1000',
+            'sticker_id' => 'nullable|integer|exists:stickers,id',
+            'parent_id' => 'nullable|integer|exists:message_replies,id',
         ]);
+
+        // Balasan wajib punya teks ATAU stiker (bisa kirim stiker doang ala WhatsApp)
+        if (! isset($validated['body']) || trim($validated['body']) === '') {
+            $validated['body'] = null;
+        }
+
+        if (empty($validated['body']) && empty($validated['sticker_id'])) {
+            return back()
+                ->withErrors(['body' => 'Isi balasan atau pilih stiker terlebih dahulu.'])
+                ->withInput();
+        }
 
         if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
             $validated['sender_name'] = null;
         }
 
+        // ─── RESOLVE PARENT (reply komentar, 1 tingkat) ───
+        // Parent harus balasan dari pesan yang SAMA (jangan sampai balasan
+        // nyasar ke komentar pesan lain). Kalau parent yang dikirim ternyata
+        // anak (punya parent sendiri), tempelkan ke komentar root-nya —
+        // depth maksimal 1 tingkat.
+        $parentId = $validated['parent_id'] ?? null;
+        if ($parentId) {
+            $parent = MessageReply::where('id', $parentId)
+                ->where('message_id', $message->id)
+                ->first();
+
+            if (! $parent) {
+                return back()
+                    ->withErrors(['parent_id' => 'Komentar yang dibalas tidak ditemukan.'])
+                    ->withInput();
+            }
+
+            $parentId = $parent->parent_id ?? $parent->id;
+        }
+
+        // Resolve stiker ke path-nya biar balasan tetap tampil meski stiker
+        // dihapus admin nanti (path disalin, bukan referensi ke record).
+        $stickerPath = null;
+        if (! empty($validated['sticker_id'])) {
+            $stickerPath = Sticker::find($validated['sticker_id'])?->path;
+        }
+
         MessageReply::create([
             'message_id' => $message->id,
+            'parent_id' => $parentId,
             'sender_name' => $validated['sender_name'] ?? null,
-            'body' => trim($validated['body']),
+            'body' => $validated['body'],
+            'sticker_path' => $stickerPath,
             'ip_address' => SpamDetectionService::clientIp($request),
         ]);
 

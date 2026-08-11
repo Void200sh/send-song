@@ -8,15 +8,31 @@ class MessageReply extends Model
 {
     protected $fillable = [
         'message_id',
+        'parent_id',
         'sender_name',
         'body',
         'ip_address',
+        'photo_path',
+        'sticker_path',
     ];
 
     // Satu balasan milik satu pesan
     public function message()
     {
         return $this->belongsTo(Message::class);
+    }
+
+    // ─── REPLY KOMENTAR (1 tingkat) ───
+    // parent_id null = komentar root; terisi = anak dari komentar root.
+    public function parent()
+    {
+        return $this->belongsTo(MessageReply::class, 'parent_id');
+    }
+
+    // Anak-anak komentar ini (urut dari yang paling lama)
+    public function children()
+    {
+        return $this->hasMany(MessageReply::class, 'parent_id')->oldest();
     }
 
     // Satu balasan punya banyak reaksi (dari banyak pengunjung)

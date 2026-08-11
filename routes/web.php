@@ -123,6 +123,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/export/audit.csv', [AdminController::class, 'exportAuditCsv'])->name('export.audit');
     Route::get('/export/logins.csv', [AdminController::class, 'exportLoginsCsv'])->name('export.logins');
     Route::get('/export/hack.csv', [AdminController::class, 'exportHackCsv'])->name('export.hack');
+    Route::post('/stickers', [AdminController::class, 'storeSticker'])->name('stickers.store');
+    Route::delete('/stickers/{sticker}', [AdminController::class, 'destroySticker'])->name('stickers.destroy');
 });
 
 require __DIR__.'/auth.php';

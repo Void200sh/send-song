@@ -302,6 +302,99 @@
                 @endif
             </div>
         </div>
+
+        {{-- ─── KELOLA STIKER (khusus admin) ─── --}}
+        <div class="card">
+            <div class="card__header">
+                <div class="card__heading">
+                    <h2 class="card__title">
+                        Kelola Stiker 🎨
+                        <span class="badge badge--primary ms-2">{{ $stickers->count() }}</span>
+                    </h2>
+                    <p class="card__subtitle">Unggah stiker yang bisa dipakai pengunjung di balasan pesan.</p>
+                </div>
+            </div>
+            <div class="card__body">
+                @if (session('success'))
+                    <div class="alert alert--success">
+                        <div class="alert__title">Berhasil</div>
+                        <div class="alert__description">{{ session('success') }}</div>
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert--danger">
+                        <div class="alert__title">Gagal</div>
+                        <div class="alert__description">{{ session('error') }}</div>
+                    </div>
+                @endif
+
+                {{-- ─── FORM UNGGAH STIKER ─── --}}
+                <form action="{{ route('admin.stickers.store') }}" method="POST" enctype="multipart/form-data"
+                    class="flex flex-wrap items-end gap-3">
+                    @csrf
+                    <div class="input-group" style="flex: 1 1 14rem; min-width: 0;">
+                        <label for="sticker-name" class="input-group__label">Nama (opsional)</label>
+                        <input type="text" name="name" id="sticker-name" maxlength="255"
+                            placeholder="misal: love, teriak, senyum" class="input">
+                    </div>
+                    <div class="input-group" style="flex: 1 1 16rem; min-width: 0;">
+                        <label for="sticker-file" class="input-group__label">File stiker</label>
+                        <input type="file" name="sticker" id="sticker-file" accept="image/jpeg,image/png,image/webp"
+                            required class="input">
+                        <p class="text-xs text-muted-foreground mt-1.5">jpeg/png/webp, maks 2MB</p>
+                    </div>
+                    <button type="submit" class="button button--primary">Unggah</button>
+                </form>
+
+                @error('sticker')
+                    <div class="alert alert--danger" style="margin-top: 0.75rem;">
+                        <div class="alert__title">Stiker gagal disimpan</div>
+                        <div class="alert__description">{{ $message }}</div>
+                    </div>
+                @enderror
+
+                @if ($stickers->isEmpty())
+                    <div class="empty-state empty-state--sm" style="margin-top: 1.5rem;">
+                        <p class="empty-state__title">Belum ada stiker</p>
+                        <p class="empty-state__text">Unggah stiker pertama — langsung tampil di picker balasan pesan.</p>
+                    </div>
+                @else
+                    <div class="grid grid-cols-12 gap-4" style="margin-top: 1.5rem;">
+                        @foreach ($stickers as $sticker)
+                            <div class="card card--stat col-span-6 sm:col-span-4 lg:col-span-3 xl:col-span-2" style="margin: 0;">
+                                <div class="card__body">
+                                    <div class="flex items-center justify-between" style="gap: 8px; margin-bottom: 0.6rem;">
+                                        <span class="badge badge--soft">{{ $loop->iteration }}</span>
+                                        <form action="{{ route('admin.stickers.destroy', $sticker) }}" method="POST"
+                                            data-confirm="Hapus stiker ini?"
+                                            data-confirm-ok="ya, hapus"
+                                            data-confirm-title="Hapus stiker">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="button button--danger button--sm button--icon-only"
+                                                aria-label="Hapus stiker" title="Hapus stiker">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <img src="{{ $sticker->url() }}" alt="{{ $sticker->name ?: 'stiker' }}" loading="lazy"
+                                        class="w-full aspect-square object-contain rounded-lg mb-2"
+                                        style="background: var(--color-surface); border: 1px solid var(--color-border);">
+                                    <p class="font-medium text-sm truncate" title="{{ $sticker->name ?: 'stiker' }}">
+                                        {{ $sticker->name ?: 'stiker' }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
     </section>
 @endsection
 

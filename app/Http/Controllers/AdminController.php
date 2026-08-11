@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\MessageReply;
 use App\Models\MessageReport;
 use App\Models\SpamBan;
+use App\Models\Sticker;
 use App\Services\AuditService;
 use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
@@ -159,6 +160,9 @@ class AdminController extends Controller
         $latestMessages = Message::where('is_spam', false)->latest()->limit(5)->get();
         $spamCount = Message::where('is_spam', true)->count();
 
+        // ─── STIKER (kelola lewat dashboard admin) ───
+        $stickers = Sticker::latest()->get();
+
         return view('admin.dashboard', compact(
             'totalMessages',
             'todayMessages',
@@ -173,8 +177,57 @@ class AdminController extends Controller
             'topKelas',
             'topSongs',
             'latestMessages',
-            'spamCount'
+            'spamCount',
+            'stickers'
         ));
+    }
+
+    /**
+     * ─── TAMBAH STIKER BARU (khusus admin via dashboard) ───
+     * Unggah gambar stiker (jpeg/png/webp, maks 2MB) → disimpan di
+     * storage/app/public/stickers → tersedia buat picker balasan publik.
+     */
+    public function storeSticker(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'sticker' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+        ]);
+
+        $path = $request->file('sticker')->store('stickers', 'public');
+
+        $sticker = Sticker::create([
+            'name' => isset($validated['name']) && trim($validated['name']) !== ''
+                ? trim($validated['name'])
+                : null,
+            'path' => $path,
+            'is_active' => true,
+        ]);
+
+        app(AuditService::class)->log('stickers.store', 'sticker', $sticker->id, [
+            'name' => $sticker->name,
+            'path' => $sticker->path,
+        ]);
+
+        return back()->with('success', 'Stiker berhasil ditambahkan — langsung bisa dipakai di balasan.');
+    }
+
+    /**
+     * ─── HAPUS STIKER (khusus admin via dashboard) ───
+     * Hapus file + record stiker. Balasan lama yang memakai stiker ini
+     * tetap aman (path disalin ke kolom sticker_path balasan, tidak referensi).
+     */
+    public function destroySticker(Sticker $sticker)
+    {
+        app(AuditService::class)->log('stickers.destroy', 'sticker', $sticker->id, [
+            'name' => $sticker->name,
+            'path' => $sticker->path,
+        ]);
+
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($sticker->path);
+        $sticker->delete();
+
+        return back()->with('success', 'Stiker berhasil dihapus.');
     }
 
     /**
@@ -316,7 +369,7 @@ class AdminController extends Controller
      */
     public function replies(Request $request)
     {
-        $query = MessageReply::query()->with('message');
+        $query = MessageReply::query()->with('message', 'parent');
 
         if ($request->filled('search')) {
             $search = $request->search;

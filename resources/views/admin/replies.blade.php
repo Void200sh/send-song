@@ -122,12 +122,23 @@
                                             @else
                                                 <span class="text-muted-foreground">Anonim</span>
                                             @endif
+                                            @if ($reply->parent)
+                                                <span class="block text-[11px] text-muted-foreground mt-0.5">
+                                                    membalas {{ '@' . ($reply->parent->sender_name ?: 'anonim') }}
+                                                </span>
+                                            @endif
                                         </td>
                                         <td class="max-w-48">
-                                            <p class="text-sm" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-                                                title="{{ $reply->body }}">
-                                                {!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($reply->body, 60)) !!}
-                                            </p>
+                                            @if ($reply->sticker_path)
+                                                <img src="{{ asset('storage/' . $reply->sticker_path) }}" alt="stiker"
+                                                    loading="lazy" class="w-10 h-10 object-contain rounded-lg border border-[var(--color-border)] mb-1">
+                                            @endif
+                                            @if ($reply->body)
+                                                <p class="text-sm" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                                                    title="{{ $reply->body }}">
+                                                    {!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($reply->body, 60)) !!}
+                                                </p>
+                                            @endif
                                         </td>
                                         <td>
                                             @if ($reply->message)
