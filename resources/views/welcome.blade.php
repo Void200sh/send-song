@@ -11,10 +11,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SkanidaSong - SMK</title>
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
-    {{-- Preconnect ke fonts.bunny.net biar loading font lebih cepet --}}
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    {{-- Load 2 font: Reenie Beanie (font dekoratif buat judul) sama Plus Jakarta Sans (font utama) --}}
-    <link href="https://fonts.bunny.net/css?family=reenie-beanie:400|plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
+    {{-- Font dimuat lokal (same-origin) supaya html-to-image bisa meng-embed-nya
+       ke gambar PNG "save as png". CDN fonts.bunny.net cross-origin gagal dibaca
+       (SecurityError/CORS) → font fallback → tulisan tumpuk di gambar. --}}
+    @include('partials.fonts')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 

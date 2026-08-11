@@ -25,3 +25,7 @@ Thumbs.db
 
 # stray local sqlite dump created during debugging
 skanida_song
+
+# tesseract runtime data + debug artifacts
+eng.traineddata
+public/downloaded_story.png
