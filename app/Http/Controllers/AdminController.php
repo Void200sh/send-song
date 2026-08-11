@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\Feedback;
 use App\Models\HackAttempt;
 use App\Models\LoginLog;
 use App\Models\Message;
@@ -350,6 +351,49 @@ class AdminController extends Controller
         $reply->delete();
 
         return back()->with('success', 'Balasan berhasil dihapus.');
+    }
+
+    /**
+     * ─── HALAMAN SARAN & KRITIK ───
+     * Semua masukan pengunjung (saran & kritik) yang dikirim lewat modal
+     * setelah mereka berhasil mengirim story. Bisa dicari ?search=...
+     */
+    public function feedbacks(Request $request)
+    {
+        $query = Feedback::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('saran', 'like', '%' . $search . '%')
+                    ->orWhere('kritik', 'like', '%' . $search . '%')
+                    ->orWhere('ip_address', 'like', '%' . $search . '%');
+            });
+        }
+
+        $feedbacks = $query->latest()->paginate(20)->withQueryString()->onEachSide(1);
+
+        $stats = [
+            'total' => Feedback::count(),
+            'today' => Feedback::whereDate('created_at', Carbon::today())->count(),
+            'withSaran' => Feedback::whereNotNull('saran')->count(),
+        ];
+
+        return view('admin.feedbacks', compact('feedbacks', 'stats'));
+    }
+
+    /**
+     * Hapus satu masukan saran & kritik.
+     */
+    public function destroyFeedback(Feedback $feedback)
+    {
+        app(AuditService::class)->log('feedbacks.destroy', 'feedback', $feedback->id, [
+            'saran' => Str::limit((string) $feedback->saran, 50),
+            'kritik' => Str::limit((string) $feedback->kritik, 50),
+        ]);
+        $feedback->delete();
+
+        return back()->with('success', 'Masukan berhasil dihapus.');
     }
 
     /**

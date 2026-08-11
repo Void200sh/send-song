@@ -30,7 +30,7 @@ class AntiSpamTest extends TestCase
                 'message' => 'Pesan biasa',
             ]);
 
-        $response->assertRedirect(route('messages.index'));
+        $response->assertRedirect(route('messages.index', ['feedback' => 1]));
         $this->assertDatabaseHas('messages', [
             'sender_name' => 'Alya',
             'ip_address' => '203.0.113.10',

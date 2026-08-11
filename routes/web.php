@@ -72,6 +72,12 @@ Route::post('/messages/{message}/report', [MessageController::class, 'report'])
     ->middleware('throttle:10,1')
     ->name('messages.report');
 
+// ─── RUTE SIMPAN SARAN & KRITIK (modal setelah kirim story) ───
+// throttle: batasi 5 pengiriman/menit per IP biar gak bisa digoreng bebas.
+Route::post('/feedback', [MessageController::class, 'feedback'])
+    ->middleware('throttle:5,1')
+    ->name('feedback.store');
+
 // ─── RUTE DASHBOARD BAWAAN BREEZE ───
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -92,6 +98,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/audit/logins-read', [AdminController::class, 'markLoginsRead'])->name('audit.logins-read');
     Route::delete('/audit/bans/{ban}', [AdminController::class, 'unban'])->name('audit.unban');
     Route::get('/hack', [AdminController::class, 'hackTraces'])->name('hack');
+    Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('feedbacks');
+    Route::delete('/feedbacks/{feedback}', [AdminController::class, 'destroyFeedback'])->name('feedbacks.destroy');
     Route::get('/replies', [AdminController::class, 'replies'])->name('replies');
     Route::delete('/replies/{reply}', [AdminController::class, 'destroyReply'])->name('replies.destroy');
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');

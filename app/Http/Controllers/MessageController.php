@@ -173,6 +173,36 @@ class MessageController extends Controller
     }
 
     /**
+     * ─── METHOD FEEDBACK — SIMPAN SARAN & KRITIK PENGUNJUNG ───
+     * Modal "saran & kritik" muncul setelah pengunjung berhasil mengirim story.
+     * Kedua kolom opsional, minimal satu terisi. Disimpan per IP pengunjung
+     * dan dilihat admin di halaman Saran & Kritik.
+     */
+    public function feedback(Request $request)
+    {
+        $validated = $request->validate([
+            'saran' => 'nullable|string|max:2000',
+            'kritik' => 'nullable|string|max:2000',
+        ]);
+
+        $saran = isset($validated['saran']) ? trim($validated['saran']) : '';
+        $kritik = isset($validated['kritik']) ? trim($validated['kritik']) : '';
+
+        // Keduanya kosong = tidak ada masukan → tidak perlu disimpan
+        if ($saran === '' && $kritik === '') {
+            return response()->json(['ok' => false, 'message' => 'Isi minimal satu kolom.'], 422);
+        }
+
+        \App\Models\Feedback::create([
+            'saran' => $saran !== '' ? $saran : null,
+            'kritik' => $kritik !== '' ? $kritik : null,
+            'ip_address' => SpamDetectionService::clientIp($request),
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
      * ─── METHOD REPORT — LAPORKAN PESAN (konten tidak pantas) ───
      * Pengunjung menekan tombol lapor → tersimpan di tabel message_reports.
      * Admin melihatnya di halaman admin Laporan dan bisa ban IP / hapus pesan.
@@ -354,10 +384,16 @@ class MessageController extends Controller
         $message = DB::transaction(fn () => Message::create($validated));
         $spam->recordAndMaybeBan($message);
 
-        return redirect()->route('messages.index')
-            ->with('success', $message->is_spam
-                ? 'Pesan diterima dan sedang diperiksa.'
-                : 'Pesan berhasil dikirim!');
+        // Setelah story terkirim, bawa flag ?feedback=1 supaya halaman browse
+        // memunculkan modal "saran & kritik" (hanya untuk pesan yang tampil publik;
+        // pesan spam tidak memicu modal — redirect polos tanpa parameter).
+        $redirect = $message->is_spam
+            ? redirect()->route('messages.index')
+            : redirect()->route('messages.index', ['feedback' => 1]);
+
+        return $redirect->with('success', $message->is_spam
+            ? 'Pesan diterima dan sedang diperiksa.'
+            : 'Pesan berhasil dikirim!');
     }
 
     /**
