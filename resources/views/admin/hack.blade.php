@@ -19,7 +19,9 @@
                     <button type="submit" class="button button--outline button--sm">Tandai dibaca</button>
                 </form>
                 <form method="POST" action="{{ route('admin.hack.clear') }}"
-                    onsubmit="return confirm('Hapus SEMUA jejak hacking? Tindakan ini tidak bisa dibatalkan.')">
+                    data-confirm="Hapus SEMUA jejak hacking? Tindakan ini tidak bisa dibatalkan."
+                    data-confirm-ok="ya, hapus semua"
+                    data-confirm-title="Hapus semua jejak">
                     @csrf
                     <button type="submit" class="button button--danger button--sm">Hapus semua</button>
                 </form>
@@ -194,7 +196,8 @@
                                         </td>
                                         <td class="text-end">
                                             <form method="POST" action="{{ route('admin.hack.destroy', $attempt) }}"
-                                                onsubmit="return confirm('Hapus jejak ini?')">
+                                                data-confirm="Hapus jejak ini?"
+                                                data-confirm-ok="ya, hapus">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="button button--danger button--sm button--icon-only"

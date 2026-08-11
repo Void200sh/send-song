@@ -117,6 +117,9 @@
                             'laut' => ['laut', '🌊'],
                             'lavender' => ['lavender', '💜'],
                             'mint' => ['mint', '🍃'],
+                            'neon' => ['neon', '✨'],
+                            'film' => ['film', '🎬'],
+                            'pastel' => ['pastel pop', '🍭'],
                         ];
                     @endphp
                     <div id="theme-picker" class="grid grid-cols-3 gap-2">

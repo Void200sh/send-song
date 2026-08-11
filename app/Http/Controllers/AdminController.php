@@ -2,17 +2,97 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\HackAttempt;
+use App\Models\LoginLog;
 use App\Models\Message;
+use App\Models\MessageReply;
+use App\Models\MessageReport;
 use App\Models\SpamBan;
+use App\Services\AuditService;
 use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
+    /**
+     * ─── HALAMAN AUDIT SECURITY ───
+     * Pusat pantauan keamanan panel admin:
+     *  - Aktivitas admin (audit_logs): siapa melakukan apa kapan
+     *  - Riwayat login (login_logs): sukses/gagal + login mencurigakan (IP baru)
+     *  - IP ter-ban (spam_bans): daftar ban, bisa di-unban
+     *  - Export log security (CSV)
+     */
+    public function audit(Request $request, AuditService $audit)
+    {
+        // Log aktivitas admin (default tampil dulu)
+        $auditLogs = AuditLog::query()->latest();
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $auditLogs->where(function ($q) use ($s) {
+                $q->where('user_name', 'like', '%' . $s . '%')
+                    ->orWhere('action', 'like', '%' . $s . '%')
+                    ->orWhere('ip_address', 'like', '%' . $s . '%');
+            });
+        }
+        $auditLogs = $auditLogs->paginate(20, ['*'], 'audit_page')->withQueryString();
+
+        // Riwayat login
+        $loginLogs = LoginLog::query()->latest();
+        if ($request->filled('login_status')) {
+            $loginLogs->where('status', $request->login_status);
+        }
+        $loginLogs = $loginLogs->paginate(20, ['*'], 'login_page')->withQueryString();
+
+        // IP ter-ban (SpamBan), wildcard '*' = ban seluruh IP
+        $bans = SpamBan::query()
+            ->with('bannedBy')
+            ->orderByDesc('banned_at')
+            ->paginate(20, ['*'], 'bans_page')->withQueryString();
+
+        $stats = [
+            'totalActions' => AuditLog::count(),
+            'todayActions' => AuditLog::whereDate('created_at', Carbon::today())->count(),
+            'totalLogins' => LoginLog::count(),
+            'failedLogins' => LoginLog::where('status', 'failed')->count(),
+            'suspiciousLogins' => LoginLog::where('is_suspicious', true)->count(),
+            'bannedIps' => SpamBan::distinct('ip_address')->count('ip_address'),
+        ];
+
+        return view('admin.audit', compact('auditLogs', 'loginLogs', 'bans', 'stats'));
+    }
+
+    /**
+     * Tandai semua log login yang belum dibaca sebagai sudah dibaca.
+     */
+    public function markLoginsRead()
+    {
+        app(AuditService::class)->log('logins.read-all', 'login_log', null, [
+            'marked' => LoginLog::where('is_new', true)->count(),
+        ]);
+        LoginLog::where('is_new', true)->update(['is_new' => false]);
+
+        return back()->with('success', 'Semua log login ditandai sudah dibaca.');
+    }
+
+    /**
+     * ─── HAPUS BAN IP (UNBAN) ───
+     * Hapus satu baris ban dari tabel spam_bans → IP bisa kirim pesan lagi.
+     */
+    public function unban(SpamBan $ban, AuditService $audit)
+    {
+        $ip = $ban->ip_address;
+        $ban->delete();
+
+        $audit->log('bans.unban', 'spam_ban', null, ['ip_address' => $ip]);
+
+        return back()->with('success', "Ban untuk IP {$ip} berhasil dihapus — IP bisa mengirim lagi.");
+    }
+
     /**
      * ─── DASHBOARD ADMIN — HALAMAN UTAMA ───
      * Nampilin statistik ringkas: total pesan, pesan hari ini, pengirim aktif,
@@ -134,13 +214,17 @@ class AdminController extends Controller
      * Toggle is_pinned: pesan ter-pin tampil paling atas di feed publik.
      * pinned_at diisi saat di-pin, dikosongkan saat dilepas.
      */
-    public function togglePin(Message $message)
+    public function togglePin(Message $message, AuditService $audit)
     {
         $pinned = ! $message->is_pinned;
 
         $message->update([
             'is_pinned' => $pinned,
             'pinned_at' => $pinned ? now() : null,
+        ]);
+
+        $audit->log($pinned ? 'messages.pin' : 'messages.unpin', 'message', $message->id, [
+            'recipient' => $message->recipient_name,
         ]);
 
         return back()->with('success', $pinned
@@ -189,6 +273,9 @@ class AdminController extends Controller
      */
     public function markHackAttemptsRead()
     {
+        app(AuditService::class)->log('hack.read-all', 'hack_attempt', null, [
+            'marked' => HackAttempt::where('is_new', true)->count(),
+        ]);
         HackAttempt::where('is_new', true)->update(['is_new' => false]);
 
         return back()->with('success', 'Semua jejak hacking ditandai sudah dibaca.');
@@ -199,6 +286,10 @@ class AdminController extends Controller
      */
     public function destroyHackAttempt(HackAttempt $attempt)
     {
+        app(AuditService::class)->log('hack.destroy', 'hack_attempt', $attempt->id, [
+            'signature' => $attempt->signature,
+            'ip' => $attempt->ip_address,
+        ]);
         $attempt->delete();
 
         return back()->with('success', 'Satu jejak hacking dihapus.');
@@ -209,9 +300,163 @@ class AdminController extends Controller
      */
     public function clearHackAttempts()
     {
+        app(AuditService::class)->log('hack.clear', 'hack_attempt', null, [
+            'deleted' => HackAttempt::count(),
+        ]);
         HackAttempt::query()->delete();
 
         return back()->with('success', 'Semua jejak hacking telah dihapus.');
+    }
+
+    /**
+     * ─── HALAMAN BALASAN (KOMENTAR) ───
+     * Semua balasan/komentar di semua pesan, biar admin bisa mengawasi
+     * kalau ada komentar nyeleneh. Bisa dicari ?search=... (nama/isi/IP).
+     */
+    public function replies(Request $request)
+    {
+        $query = MessageReply::query()->with('message');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('sender_name', 'like', '%' . $search . '%')
+                    ->orWhere('body', 'like', '%' . $search . '%')
+                    ->orWhere('ip_address', 'like', '%' . $search . '%');
+            });
+        }
+
+        $replies = $query->latest()->paginate(20)->withQueryString()->onEachSide(1);
+
+        $stats = [
+            'total' => MessageReply::count(),
+            'today' => MessageReply::whereDate('created_at', Carbon::today())->count(),
+            'uniqueIps' => MessageReply::distinct('ip_address')->count('ip_address'),
+        ];
+
+        return view('admin.replies', compact('replies', 'stats'));
+    }
+
+    /**
+     * ─── HAPUS SATU BALASAN (moderasi komentar nyeleneh) ───
+     * Hanya menghapus balasannya; pesan induk tetap aman.
+     */
+    public function destroyReply(MessageReply $reply)
+    {
+        app(AuditService::class)->log('replies.destroy', 'reply', $reply->id, [
+            'body' => Str::limit($reply->body, 60),
+            'message_id' => $reply->message_id,
+        ]);
+        $reply->delete();
+
+        return back()->with('success', 'Balasan berhasil dihapus.');
+    }
+
+    /**
+     * ─── HALAMAN LAPORAN ───
+     * Laporan pengunjung tentang pesan yang dianggap tidak pantas.
+     * Admin bisa: tandai selesai, ban IP pengirim pesan, hapus pesannya, atau hapus laporannya.
+     * Difilter ?status=open|resolved (default semua).
+     */
+    public function reports(Request $request)
+    {
+        $query = MessageReport::query()->with('message');
+
+        if ($request->filled('status')) {
+            $query->where('is_resolved', $request->status === 'resolved');
+        }
+
+        $reports = $query->latest()->paginate(20)->withQueryString()->onEachSide(1);
+
+        $stats = [
+            'total' => MessageReport::count(),
+            'open' => MessageReport::where('is_resolved', false)->count(),
+        ];
+
+        return view('admin.reports', compact('reports', 'stats'));
+    }
+
+    /**
+     * Tandai laporan sebagai sudah selesai ditangani.
+     */
+    public function resolveReport(MessageReport $report)
+    {
+        $report->update(['is_resolved' => true]);
+
+        app(AuditService::class)->log('reports.resolve', 'report', $report->id, [
+            'reason' => $report->reason,
+        ]);
+
+        return back()->with('success', 'Laporan ditandai selesai.');
+    }
+
+    /**
+     * ─── BAN IP PENGIRIM PESAN DARI LAPORAN ───
+     * IP pengirim (bukan pelapor) langsung diblokir seumur hidup via tabel spam_bans.
+     * Karena nama pengirim tidak diketahui, pakai sender_key '*' (wildcard) biar
+     * middleware CheckSpamBan memblokir SEMUA pengiriman dari IP tersebut.
+     */
+    public function banReportIp(MessageReport $report)
+    {
+        $ip = $report->message?->ip_address;
+        if (! $ip) {
+            return back()->with('error', 'IP pengirim pesan tidak ditemukan.');
+        }
+
+        SpamBan::updateOrCreate(
+            [
+                'sender_key' => '*',
+                'ip_address' => $ip,
+            ],
+            [
+                'sender_name' => $report->message?->sender_name,
+                'spam_count' => Message::where('ip_address', $ip)->where('is_spam', false)->count(),
+                'reason' => 'Diblokir manual dari laporan pengunjung.',
+                'banned_at' => now(),
+                'ban_source' => 'manual',
+                'banned_by' => auth()->id(),
+            ]
+        );
+
+        $report->update(['is_resolved' => true]);
+
+        app(AuditService::class)->log('reports.ban-ip', 'report', $report->id, [
+            'ip_address' => $ip,
+            'reason' => $report->reason,
+        ]);
+
+        return back()->with('success', "IP {$ip} berhasil diblokir — pengiriman dari IP ini sekarang diblokir.");
+    }
+
+    /**
+     * Hapus pesan yang dilaporkan (semua balasan/reaksi ikut terhapus via cascade).
+     */
+    public function destroyReportedMessage(MessageReport $report)
+    {
+        $message = $report->message;
+
+        app(AuditService::class)->log('reports.delete-message', 'report', $report->id, [
+            'message_id' => $message?->id,
+            'recipient' => $message?->recipient_name,
+        ]);
+        $message?->delete();
+
+        return back()->with('success', $message
+            ? 'Pesan yang dilaporkan berhasil dihapus.'
+            : 'Pesan sudah tidak ada lagi.');
+    }
+
+    /**
+     * Hapus satu baris laporan (tanpa menghapus pesannya).
+     */
+    public function destroyReport(MessageReport $report)
+    {
+        app(AuditService::class)->log('reports.destroy', 'report', $report->id, [
+            'reason' => $report->reason,
+        ]);
+        $report->delete();
+
+        return back()->with('success', 'Laporan dihapus.');
     }
 
     /**
@@ -243,6 +488,12 @@ class AdminController extends Controller
             ->where('ip_address', $validated['ip_address'])
             ->delete());
 
+        app(AuditService::class)->log('spam.destroy-group', 'spam', null, [
+            'sender_key' => $validated['sender_key'],
+            'ip_address' => $validated['ip_address'],
+            'deleted' => $deleted,
+        ]);
+
         return redirect()->route('admin.spam')
             ->with('success', "{$deleted} pesan dari identitas tersebut berhasil dihapus.");
     }
@@ -253,6 +504,11 @@ class AdminController extends Controller
      */
     public function destroy(Message $message)
     {
+        $audit = app(AuditService::class);
+        $audit->log('messages.destroy', 'message', $message->id, [
+            'recipient' => $message->recipient_name,
+            'kelas' => $message->kelas,
+        ]);
         $message->delete();
 
         return redirect()->route('admin.messages')
@@ -278,6 +534,10 @@ class AdminController extends Controller
         }
 
         $message->update(['youtube_video_id' => $match['youtube_id']]);
+
+        app(AuditService::class)->log('messages.resolve-song', 'message', $message->id, [
+            'song' => $message->song_title,
+        ]);
 
         return back()->with('success', "Lagu \"{$message->song_title}\" berhasil di-resolve ke YouTube.");
     }
@@ -422,6 +682,105 @@ class AdminController extends Controller
         }
 
         return $this->csvResponse("lagu-{$this->exportDateRange($request)}.csv", $rows);
+    }
+
+    /**
+     * ─── EXPORT LOG AUDIT KE CSV ───
+     * Semua aktivitas admin: waktu, admin, aksi, target, detail, IP.
+     */
+    public function exportAuditCsv(Request $request)
+    {
+        app(AuditService::class)->log('export.audit', null, null, [
+            'rows' => AuditLog::count(),
+        ]);
+
+        $query = AuditLog::query();
+
+        if ($request->filled('from') && $request->filled('to')) {
+            $query->whereBetween('created_at', [$request->from . ' 00:00:00', $request->to . ' 23:59:59']);
+        }
+
+        $logs = $query->orderByDesc('created_at')->get();
+
+        $rows = [['Waktu', 'Admin', 'Aksi', 'Target', 'Detail', 'IP Address']];
+        foreach ($logs as $log) {
+            $rows[] = [
+                $log->created_at?->format('Y-m-d H:i:s'),
+                $log->user_name ?: 'Sistem',
+                $log->action,
+                $log->target_type ? $log->target_type . '#' . $log->target_id : '',
+                $log->details ? json_encode($log->details, JSON_UNESCAPED_UNICODE) : '',
+                $log->ip_address ?: '',
+            ];
+        }
+
+        return $this->csvResponse("audit-{$this->exportDateRange($request)}.csv", $rows);
+    }
+
+    /**
+     * ─── EXPORT RIWAYAT LOGIN KE CSV ───
+     * Semua percobaan login admin: waktu, email, status, mencurigakan?, IP.
+     */
+    public function exportLoginsCsv(Request $request)
+    {
+        app(AuditService::class)->log('export.logins', null, null, [
+            'rows' => LoginLog::count(),
+        ]);
+
+        $query = LoginLog::query();
+
+        if ($request->filled('from') && $request->filled('to')) {
+            $query->whereBetween('created_at', [$request->from . ' 00:00:00', $request->to . ' 23:59:59']);
+        }
+
+        $logs = $query->orderByDesc('created_at')->get();
+
+        $rows = [['Waktu', 'Email', 'Status', 'Mencurigakan', 'IP Address']];
+        foreach ($logs as $log) {
+            $rows[] = [
+                $log->created_at?->format('Y-m-d H:i:s'),
+                $log->email,
+                $log->status,
+                $log->is_suspicious ? 'Ya' : 'Tidak',
+                $log->ip_address ?: '',
+            ];
+        }
+
+        return $this->csvResponse("login-{$this->exportDateRange($request)}.csv", $rows);
+    }
+
+    /**
+     * ─── EXPORT JEJAK HACKING KE CSV ───
+     * Semua percobaan serangan yang terdeteksi: waktu, severitas, IP, target, alasan.
+     */
+    public function exportHackCsv(Request $request)
+    {
+        app(AuditService::class)->log('export.hack', null, null, [
+            'rows' => HackAttempt::count(),
+        ]);
+
+        $query = HackAttempt::query();
+
+        if ($request->filled('from') && $request->filled('to')) {
+            $query->whereBetween('created_at', [$request->from . ' 00:00:00', $request->to . ' 23:59:59']);
+        }
+
+        $attempts = $query->orderByDesc('created_at')->get();
+
+        $rows = [['Waktu', 'Severitas', 'Jenis', 'IP Address', 'Method', 'Target', 'Alasan']];
+        foreach ($attempts as $a) {
+            $rows[] = [
+                $a->created_at?->format('Y-m-d H:i:s'),
+                $a->severity,
+                $a->signature,
+                $a->ip_address,
+                $a->method,
+                $a->path,
+                $a->reason,
+            ];
+        }
+
+        return $this->csvResponse("hack-{$this->exportDateRange($request)}.csv", $rows);
     }
 
     /**

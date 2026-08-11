@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\MessageReaction;
+use App\Models\MessageReply;
+use App\Models\MessageReport;
 use App\Models\MessageView;
+use App\Models\ReplyReaction;
 use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Illuminate\Http\Request;
@@ -52,8 +55,9 @@ class MessageController extends Controller
         // (total +1 per pesan, unik per IP lewat tabel message_views).
         $this->recordViews($messages, $request);
 
-        // Load reaksi + emoji yang sudah direaksikan pengunjung ini (biar gak N+1)
+        // Load reaksi + jumlah balasan + emoji yang sudah direaksikan pengunjung ini (biar gak N+1)
         $messages->load('reactions');
+        $messages->loadCount('replies');
         $myReactions = MessageReaction::where('ip_address', SpamDetectionService::clientIp($request))
             ->whereIn('message_id', $messages->pluck('id'))
             ->get()
@@ -76,14 +80,126 @@ class MessageController extends Controller
         // Membuka halaman detail juga dihitung sebagai views
         $this->recordViews([$message], request());
 
-        // Reaksi: load sekalian + emoji yang udah direaksikan pengunjung ini
-        $message->load('reactions');
+        // Reaksi + balasan (beserta reaksi tiap balasan): load sekalian biar gak N+1.
+        $message->load('reactions', 'replies.reactions');
         $myReactions = $message->reactions
             ->where('ip_address', SpamDetectionService::clientIp(request()))
             ->pluck('emoji')
             ->all();
 
-        return view('messages.show', compact('message', 'myReactions'));
+        // Emoji yang sudah direaksikan pengunjung ini per balasan (untuk state aktif)
+        $myReplyReactions = $message->replies->flatMap(function ($reply) {
+            return [$reply->id => $reply->reactions
+                ->where('ip_address', SpamDetectionService::clientIp(request()))
+                ->pluck('emoji')
+                ->all()];
+        })->all();
+
+        return view('messages.show', compact('message', 'myReactions', 'myReplyReactions'));
+    }
+
+    /**
+     * ─── METHOD REPLY — KIRIM BALASAN KE PESAN (thread mini) ───
+     * Pengunjung bisa membalas pesan tanpa perlu login. Nama opsional,
+     * IP dicatat untuk keperluan moderasi. Redirect balik ke halaman detail.
+     */
+    public function reply(Request $request, Message $message)
+    {
+        abort_if($message->is_spam, 404);
+
+        $validated = $request->validate([
+            'sender_name' => 'nullable|string|max:255',
+            'body' => 'required|string|max:1000',
+        ]);
+
+        if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
+            $validated['sender_name'] = null;
+        }
+
+        MessageReply::create([
+            'message_id' => $message->id,
+            'sender_name' => $validated['sender_name'] ?? null,
+            'body' => trim($validated['body']),
+            'ip_address' => SpamDetectionService::clientIp($request),
+        ]);
+
+        return back()->with('reply_success', 'Balasan terkirim!');
+    }
+
+    /**
+     * ─── METHOD REACT REPLY — TAMBAH/BATAL REAKSI EMOJI DI BALASAN (toggle) ───
+     * Sama persis seperti react() untuk pesan, tapi untuk balasan (komentar).
+     * Satu pengunjung maksimal satu reaksi per emoji per balasan (dilacak via IP).
+     */
+    public function reactReply(Request $request, MessageReply $reply)
+    {
+        abort_if($reply->message->is_spam, 404);
+
+        $validated = $request->validate([
+            'emoji' => ['required', 'string', Rule::in(Message::REACTION_EMOJIS)],
+        ]);
+
+        $emoji = $validated['emoji'];
+        $ip = SpamDetectionService::clientIp($request);
+
+        $existing = ReplyReaction::where('reply_id', $reply->id)
+            ->where('emoji', $emoji)
+            ->where('ip_address', $ip)
+            ->first();
+
+        DB::transaction(function () use ($existing, $reply, $emoji, $ip) {
+            if ($existing) {
+                $existing->delete();
+            } else {
+                ReplyReaction::create([
+                    'reply_id' => $reply->id,
+                    'emoji' => $emoji,
+                    'ip_address' => $ip,
+                ]);
+            }
+        });
+
+        // Hitung ulang jumlah reaksi per emoji buat balasan ini
+        $counts = ReplyReaction::where('reply_id', $reply->id)
+            ->select('emoji')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('emoji')
+            ->pluck('total', 'emoji');
+
+        return response()->json([
+            'counts' => $counts,
+            'active' => $existing ? null : $emoji,
+        ]);
+    }
+
+    /**
+     * ─── METHOD REPORT — LAPORKAN PESAN (konten tidak pantas) ───
+     * Pengunjung menekan tombol lapor → tersimpan di tabel message_reports.
+     * Admin melihatnya di halaman admin Laporan dan bisa ban IP / hapus pesan.
+     * Dibuat idempoten per (pesan, IP): satu pengunjung hanya 1 laporan per pesan.
+     */
+    public function report(Request $request, Message $message)
+    {
+        abort_if($message->is_spam, 404);
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        $ip = SpamDetectionService::clientIp($request);
+
+        MessageReport::updateOrCreate(
+            [
+                'message_id' => $message->id,
+                'ip_address' => $ip,
+            ],
+            [
+                'reason' => $validated['reason'] ?? null,
+                'is_resolved' => false,
+            ]
+        );
+
+        return response()->json(['ok' => true]);
     }
 
     /**

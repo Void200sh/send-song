@@ -126,6 +126,118 @@
         {{-- Reaksi emoji ala WhatsApp --}}
         @include('partials.reactions', ['msg' => $message, 'mine' => $myReactions])
 
+        {{-- Tombol lapor — kirim laporan ke admin kalau pesan ini tidak pantas --}}
+        <div class="mt-4">
+            <button type="button" data-report data-report-id="{{ $message->id }}"
+                class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-600 transition-colors cursor-pointer bg-transparent border-0 p-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg>
+                laporkan pesan ini
+            </button>
+        </div>
+
+        {{-- ─── BALASAN (thread mini) ─── --}}
+        <div class="mt-8">
+            <div class="flex items-center gap-2 mb-4">
+                <h2 class="font-reenie text-[32px] leading-[100%] text-[#171717]">balasan</h2>
+                @if ($message->replies->count() > 0)
+                    <span class="text-xs font-semibold bg-[#171717]/5 border border-[#E9E9E9] text-gray-600 rounded-full px-2.5 py-1">
+                        {{ $message->replies->count() }} balasan
+                    </span>
+                @endif
+            </div>
+
+            @if (session('reply_success'))
+                <div class="mb-4 p-3 rounded-xl bg-blue-600/10 border border-blue-900/20 text-blue-900 text-sm">
+                    {{ session('reply_success') }}
+                </div>
+            @endif
+
+            {{-- Daftar balasan --}}
+            @if ($message->replies->count() > 0)
+                <div class="space-y-4">
+                    @foreach ($message->replies as $reply)
+                        @php
+                            $replyCounts = $reply->reactionCounts();
+                            $replyMine = $myReplyReactions[$reply->id] ?? [];
+                        @endphp
+                        <div class="flex gap-3">
+                            {{-- Avatar dengan inisial — warna konsisten per nama (hash) biar gak ganti-ganti --}}
+                            <div class="w-9 h-9 shrink-0 rounded-full border border-[#E9E9E9] flex items-center justify-center text-sm font-bold shadow-sm"
+                                style="background:{{ $reply->sender_name ? 'hsl(' . (crc32($reply->sender_name) % 360) . ' 60% 93%)' : '#f3f4f6' }};color:{{ $reply->sender_name ? 'hsl(' . (crc32($reply->sender_name) % 360) . ' 40% 32%)' : '#9ca3af' }}">
+                                {{ mb_strtoupper(mb_substr($reply->sender_name ?: '?', 0, 1)) }}
+                            </div>
+                            <div class="flex-1 min-w-0 bg-gray-50 border border-[#E9E9E9] rounded-2xl rounded-tl-md px-4 py-3">
+                                <div class="flex items-baseline gap-2 flex-wrap">
+                                    <span class="text-sm font-semibold text-gray-900">{{ $reply->sender_name ?: 'anonim' }}</span>
+                                    <span class="text-[11px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mt-1 break-words leading-relaxed">{!! \App\Support\EmojiText::small($reply->body) !!}</p>
+
+                                {{-- Reaksi emoji per balasan (toggle ala WhatsApp) — chip selalu dirender, disembunyikan saat count 0 & tidak aktif --}}
+                                <div class="mt-2.5 flex flex-wrap items-center gap-1.5" data-reply-reactions data-reply-id="{{ $reply->id }}">
+                                    @foreach (\App\Models\Message::REACTION_EMOJIS as $emoji)
+                                        @php
+                                            $count = $replyCounts[$emoji] ?? 0;
+                                            $active = in_array($emoji, $replyMine, true);
+                                        @endphp
+                                        <button type="button" data-react-reply data-reply-id="{{ $reply->id }}" data-emoji="{{ $emoji }}"
+                                            data-active="{{ $active ? '1' : '0' }}"
+                                            aria-pressed="{{ $active ? 'true' : 'false' }}"
+                                            title="{{ $active ? 'Batalkan reaksi' : 'Beri reaksi' }}"
+                                            class="{{ $count === 0 && ! $active ? 'hidden' : '' }} flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs transition-all cursor-pointer select-none
+                                                {{ $active
+                                                    ? 'bg-[#171717] border-[#171717] text-white shadow-sm'
+                                                    : 'bg-white/80 border-[#E9E9E9] text-gray-500 hover:border-[#171717] hover:text-gray-900' }}">
+                                            <span class="text-sm leading-none">{{ $emoji }}</span>
+                                            <span data-reply-react-count class="font-semibold tabular-nums">{{ $count }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8 bg-gray-50 border border-dashed border-[#E9E9E9] rounded-2xl">
+                    <p class="text-sm text-gray-400">belum ada balasan — jadilah yang pertama 💬</p>
+                </div>
+            @endif
+
+            {{-- Form kirim balasan (redesain: avatar + nama + textarea dengan counter + tombol kirim) --}}
+            <form method="POST" action="{{ route('messages.reply', $message) }}" class="mt-6 bg-white border border-[#E9E9E9] rounded-2xl p-4 shadow-sm" id="reply-form">
+                @csrf
+                <div class="flex gap-3">
+                    <div data-reply-avatar class="w-9 h-9 shrink-0 rounded-full bg-[#171717]/5 border border-[#E9E9E9] flex items-center justify-center text-[#171717] text-sm font-bold">
+                        {{ old('sender_name') ? mb_strtoupper(mb_substr(old('sender_name'), 0, 1)) : '?' }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <input type="text" name="sender_name" id="reply-name" value="{{ old('sender_name') }}" data-reply-avatar-input
+                            placeholder="nama kamu (opsional)" maxlength="255"
+                            class="w-full px-3 py-2 rounded-xl border border-[#D9D9D9] text-sm text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors bg-white">
+                        <div class="relative mt-2">
+                            <textarea name="body" id="reply-body" rows="3" required maxlength="1000"
+                                placeholder="tulis balasanmu di sini..."
+                                data-reply-counter
+                                class="w-full px-3 py-2.5 pr-16 rounded-xl border border-[#D9D9D9] text-sm text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors resize-none bg-white">{{ old('body') }}</textarea>
+                            <span data-reply-counter-label
+                                class="absolute bottom-2.5 right-3 text-[10px] text-gray-300 tabular-nums pointer-events-none">0/1000</span>
+                            @error('body')
+                                <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-[11px] text-gray-400">balasanmu akan tampil di bawah pesan ini</p>
+                            <button type="submit"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171717] text-white text-sm font-semibold transition-colors hover:bg-gray-800 cursor-pointer">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                                kirim
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         {{-- Tombol unduh pesan jadi gambar story 9:16 --}}
         <div class="mt-4">
             {{-- Tombol unduh gambar story 9:16 + tombol share (bagikan LINK saja) --}}
@@ -149,6 +261,31 @@
 
     {{-- ─── KARTU STORY 9:16 (1080x1920) — DI-CAPTURE JADI GAMBAR (save as png / share) ─── --}}
     @include('partials.story-art', ['msg' => $message])
+
+    {{-- ─── JS: CHAR COUNTER + AVATAR LIVE FORM BALASAN ─── --}}
+    <script>
+        (function () {
+            var area = document.querySelector('[data-reply-counter]');
+            var label = document.querySelector('[data-reply-counter-label]');
+            if (area && label) {
+                var update = function () {
+                    label.textContent = area.value.length + '/1000';
+                };
+                area.addEventListener('input', update);
+                update();
+            }
+
+            // Avatar form ikut update mengikuti nama yang diketik (live)
+            var nameInput = document.querySelector('[data-reply-avatar-input]');
+            var avatar = document.querySelector('[data-reply-avatar]');
+            if (nameInput && avatar) {
+                nameInput.addEventListener('input', function () {
+                    var initial = nameInput.value.trim().charAt(0);
+                    avatar.textContent = initial ? initial.toUpperCase() : '?';
+                });
+            }
+        })();
+    </script>
 
     {{-- ─── FOOTER ─── --}}
     <footer class="border-t border-[#E9E9E9] py-6 mt-auto">

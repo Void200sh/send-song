@@ -187,7 +187,9 @@
                                                 </form>
                                                 {{-- Tombol hapus pesan --}}
                                                 <form method="POST" action="{{ route('admin.messages.destroy', $msg) }}"
-                                                    onsubmit="return confirm('Yakin mau hapus pesan ini?')">
+                                                    data-confirm="Yakin mau hapus pesan ini?"
+                                                    data-confirm-ok="ya, hapus"
+                                                    data-confirm-title="Hapus pesan">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="button button--danger button--sm button--icon-only"

@@ -1,6 +1,6 @@
 {{-- ─── DEKORASI TEMA KARTU (emoji melayang ala chat TikTok) ─── --}}
 {{-- Parameter: --}}
-{{--   $theme — key tema (bunga/senja/laut/lavender/mint). 'classic' / null → tidak render apa-apa --}}
+{{--   $theme — key tema (bunga/senja/laut/lavender/mint/neon/film/pastel). 'classic' / null → tidak render apa-apa --}}
 {{--   $scale — pengali ukuran emoji (dipakai di kartu story 1080x1920, kirim 4) --}}
 @php
     $scale = $scale ?? 1;
@@ -24,6 +24,18 @@
         'mint' => [
             ['🍃', '82%', '8%', 30], ['🌱', '12%', '66%', 26], ['💚', '58%', '78%', 24],
             ['🌿', '30%', '14%', 22],
+        ],
+        'neon' => [
+            ['💜', '80%', '6%', 32], ['✨', '10%', '10%', 26], ['⚡', '84%', '66%', 28],
+            ['🌟', '18%', '70%', 24], ['💫', '52%', '84%', 22],
+        ],
+        'film' => [
+            ['🎬', '82%', '6%', 30], ['🎞️', '10%', '12%', 26], ['🎥', '82%', '68%', 26],
+            ['🍿', '16%', '70%', 26], ['📽️', '50%', '84%', 22],
+        ],
+        'pastel' => [
+            ['🍭', '84%', '6%', 30], ['🧁', '10%', '12%', 26], ['🎈', '82%', '66%', 26],
+            ['🍬', '16%', '70%', 24], ['✨', '50%', '84%', 20],
         ],
         default => [],
     };

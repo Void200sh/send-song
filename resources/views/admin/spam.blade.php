@@ -56,7 +56,9 @@
                                         <td><span class="badge badge--danger">{{ $offender->spam_total }} spam</span></td>
                                         <td class="text-end">
                                             <form method="POST" action="{{ route('admin.spam.destroy-group') }}"
-                                                onsubmit="return confirm('Hapus SEMUA pesan dari nama dan IP ini? Tindakan ini tidak bisa dibatalkan.')"
+                                                data-confirm="Hapus SEMUA pesan dari nama dan IP ini? Tindakan ini tidak bisa dibatalkan."
+                                                data-confirm-ok="ya, hapus semua"
+                                                data-confirm-title="Hapus semua pesan"
                                                 class="inline-flex items-center gap-2">
                                                 @csrf
                                                 <input type="hidden" name="sender_key" value="{{ $offender->sender_key }}">

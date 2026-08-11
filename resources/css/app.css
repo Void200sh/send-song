@@ -73,3 +73,15 @@
 .theme-mint {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 45%, #bbf7d0 100%);
 }
+
+.theme-neon {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 45%, #e9d5ff 100%);
+}
+
+.theme-film {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 45%, #fde68a 100%);
+}
+
+.theme-pastel {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 45%, #fbcfe8 100%);
+}

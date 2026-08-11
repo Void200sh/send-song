@@ -55,6 +55,20 @@ class Message extends Model
         return $this->hasMany(MessageReaction::class);
     }
 
+    // ─── BALASAN ───
+    // Satu pesan punya banyak balasan (thread mini ala komentar).
+    public function replies()
+    {
+        return $this->hasMany(MessageReply::class);
+    }
+
+    // ─── LAPORAN ───
+    // Satu pesan bisa dilaporkan berkali-kali oleh pengunjung (konten tidak pantas).
+    public function reports()
+    {
+        return $this->hasMany(MessageReport::class);
+    }
+
     // ─── VIEWS ───
     // Satu pesan bisa dilihat banyak pengunjung (unik per IP).
     public function views()
@@ -72,7 +86,7 @@ class Message extends Model
     // ─── TEMA KARTU ───
     // Key tema valid untuk kartu pesan (gaya chat TikTok: gradasi pastel + dekorasi emoji).
     // 'classic' = polos (default) — disimpan sebagai NULL di DB biar konsisten sama pesan lama.
-    public const THEMES = ['classic', 'bunga', 'senja', 'laut', 'lavender', 'mint'];
+    public const THEMES = ['classic', 'bunga', 'senja', 'laut', 'lavender', 'mint', 'neon', 'film', 'pastel'];
 
     // Durasi yang ditampilkan di kartu public: durasi klip (end-start) kalau ada klip,
     // selain itu durasi lagu penuh. Fallback "0:00" kalau keduanya belum diketahui.

@@ -113,6 +113,14 @@
                         @if ($msg->is_pinned)
                             <span class="absolute top-3 right-12 flex items-center gap-1 text-[11px] font-semibold text-white bg-[#171717]/90 rounded-full px-2 py-1 shadow-sm">📌 pinned</span>
                         @endif
+                        {{-- Tombol lapor — laporkan pesan yang tidak pantas ke admin (klik aman, tidak membuka detail). --}}
+                        <button type="button" data-report
+                            data-report-id="{{ $msg->id }}"
+                            title="laporkan pesan ini"
+                            aria-label="laporkan pesan ini"
+                            class="absolute top-14 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/85 border border-[#E9E9E9] text-gray-400 hover:text-red-600 hover:border-red-300 transition-colors cursor-pointer shadow-sm backdrop-blur">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg>
+                        </button>
                         {{-- Tombol share — bagikan LINK pesan ini (tanpa gambar). Klik aman: tidak membuka halaman detail. --}}
                         <button type="button" data-share-card
                             data-share-url="{{ route('messages.show', $msg) }}"
@@ -127,13 +135,19 @@
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
                             <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($msg->recipient_name) !!}</p>
                         </div>
-                        {{-- Kelas + waktu + views (relatif, ex: "XI PPLG 1 • 2 hours ago • 👁 12") --}}
+                        {{-- Kelas + waktu + views + balasan (relatif, ex: "XI PPLG 1 • 2 hours ago • 👁 12 • 💬 3") --}}
                         <div class="text-xs text-gray-500 mb-3 flex items-center gap-2">
                             <span>{{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}</span>
                             <span class="inline-flex items-center gap-0.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
                                 <span>{{ $msg->views }}</span>
                             </span>
+                            @if ($msg->replies_count > 0)
+                                <span class="inline-flex items-center gap-0.5" title="{{ $msg->replies_count }} balasan">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-5 5v-5z"/></svg>
+                                    <span>{{ $msg->replies_count }}</span>
+                                </span>
+                            @endif
                         </div>
                         {{-- Isi pesan (font Reenie Beanie, sama seperti from/to) --}}
                         <p class="font-reenie text-[20px] leading-[100%] text-[#171717] mb-4">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 80)) !!}</p>

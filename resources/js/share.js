@@ -6,9 +6,9 @@
 //   2. Salin link ke clipboard (+ toast "link disalin ✓").
 // Tombol "save as png" tetap tersedia untuk mengunduh gambarnya.
 
-// ── TOAST kecil (feedback "link disalin") ──
-let toastEl = null;
-function toast(message) {
+// ── TOAST kecil (feedback "link disalin") — di-export biar bisa dipakai modul lain (mis. report.js) ──
+export let toastEl = null;
+export function toast(message) {
     if (!toastEl) {
         toastEl = document.createElement('div');
         toastEl.id = 'share-toast';

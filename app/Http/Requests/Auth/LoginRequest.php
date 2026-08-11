@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Services\AuditService;
 use App\Services\HackDetectionService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -48,6 +49,9 @@ class LoginRequest extends FormRequest
 
             // Rekam ke jejak hacking: login gagal berulang = ciri brute-force
             app(HackDetectionService::class)->logFailedLogin($this, (string) $this->string('email'));
+
+            // Rekam ke log login admin (audit security)
+            app(AuditService::class)->logLogin('failed', (string) $this->string('email'), null, $this);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),

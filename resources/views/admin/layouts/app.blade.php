@@ -129,6 +129,33 @@
                                 Pesan Masuk
                             </a>
 
+                            <a href="{{ route('admin.replies') }}"
+                                class="sidebar__button"
+                                @if (request()->routeIs('admin.replies')) aria-current="page" @endif>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                                Balasan
+                            </a>
+
+                            <a href="{{ route('admin.reports') }}"
+                                class="sidebar__button"
+                                @if (request()->routeIs('admin.reports')) aria-current="page" @endif>
+                                <span style="position:relative;display:inline-flex;align-items:center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                        stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                    @if (($reportCount ?? 0) > 0)
+                                        <span class="badge badge--danger" style="position:absolute;left:14px;top:-8px;min-height:16px;padding:2px 5px;font-size:10px">{{ $reportCount }}</span>
+                                    @endif
+                                </span>
+                                Laporan Pesan
+                            </a>
+
                             <a href="{{ route('admin.spam') }}"
                                 class="sidebar__button"
                                 @if (request()->routeIs('admin.spam')) aria-current="page" @endif>
@@ -161,6 +188,22 @@
                                     @endif
                                 </span>
                                 Jejak Hacking
+                            </a>
+
+                            <a href="{{ route('admin.audit') }}"
+                                class="sidebar__button"
+                                @if (request()->routeIs('admin.audit*')) aria-current="page" @endif>
+                                <span style="position:relative;display:inline-flex;align-items:center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                        stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    @if (($loginLogCount ?? 0) > 0)
+                                        <span class="badge badge--danger" style="position:absolute;left:14px;top:-8px;min-height:16px;padding:2px 5px;font-size:10px">{{ $loginLogCount }}</span>
+                                    @endif
+                                </span>
+                                Audit Security
                             </a>
 
                             <a href="{{ route('admin.songs') }}"
@@ -263,6 +306,54 @@
                             </div>
                         </div>
 
+                        {{-- Kotak notifikasi laporan pesan --}}
+                        <div class="relative" style="position:relative">
+                            <button class="navbar__button" type="button" aria-label="Notifikasi laporan"
+                                onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                                @if (($reportCount ?? 0) > 0)
+                                    <span class="badge badge--danger" style="position:absolute;right:-3px;top:-5px;min-height:16px;padding:2px 5px;font-size:10px">{{ $reportCount }}</span>
+                                @endif
+                            </button>
+                            <div class="hidden" style="position:absolute;right:0;top:calc(100% + 10px);z-index:1000;width:250px;padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);box-shadow:var(--shadow-lg)">
+                                <p style="font-weight:600;margin-bottom:5px">Laporan Pesan</p>
+                                @if (($reportCount ?? 0) > 0)
+                                    <p class="text-muted-foreground text-xs" style="margin-bottom:10px">{{ $reportCount }} pesan dilaporkan pengunjung.</p>
+                                    <a href="{{ route('admin.reports') }}" class="button button--danger button--sm button--block">Lihat laporan</a>
+                                @else
+                                    <p class="text-muted-foreground text-xs">Tidak ada laporan baru. ✅</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Kotak notifikasi login (audit security) --}}
+                        <div class="relative" style="position:relative">
+                            <button class="navbar__button" type="button" aria-label="Notifikasi login"
+                                onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                </svg>
+                                @if (($loginLogCount ?? 0) > 0)
+                                    <span class="badge badge--danger" style="position:absolute;right:-3px;top:-5px;min-height:16px;padding:2px 5px;font-size:10px">{{ $loginLogCount }}</span>
+                                @endif
+                            </button>
+                            <div class="hidden" style="position:absolute;right:0;top:calc(100% + 10px);z-index:1000;width:250px;padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);box-shadow:var(--shadow-lg)">
+                                <p style="font-weight:600;margin-bottom:5px">Riwayat Login</p>
+                                @if (($loginLogCount ?? 0) > 0)
+                                    <p class="text-muted-foreground text-xs" style="margin-bottom:10px">{{ $loginLogCount }} percobaan login baru tercatat (sukses/gagal).</p>
+                                    <a href="{{ route('admin.audit', ['tab' => 'logins']) }}" class="button button--danger button--sm button--block">Lihat riwayat login</a>
+                                @else
+                                    <p class="text-muted-foreground text-xs">Tidak ada login baru. 🔒</p>
+                                @endif
+                            </div>
+                        </div>
+
                         {{-- Kotak notifikasi jejak hacking --}}
                         <div class="relative" style="position:relative">
                             <button class="navbar__button" type="button" aria-label="Notifikasi hacking"
@@ -333,6 +424,7 @@
     {{-- ─── SCRIPT TEMPLATE ─── --}}
     <script src="{{ asset('assets/js/app-shell.js') }}?v=2"></script>
     <script src="{{ asset('assets/js/theme.js') }}"></script>
+    <script src="{{ asset('assets/js/confirm-modal.js') }}?v=1"></script>
     @stack('scripts')
 </body>
 

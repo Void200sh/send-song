@@ -53,6 +53,25 @@ Route::post('/messages/{message}/react', [MessageController::class, 'react'])
     ->middleware('throttle:30,1')
     ->name('messages.react');
 
+// ─── RUTE KIRIM BALASAN (thread mini di halaman detail) ───
+// spam-ban: IP yang diblokir (spam otomatis / ban manual dari laporan) tidak boleh kirim balasan.
+// throttle: batasi 10 balasan/menit per IP biar gak bisa banjir spam balasan.
+Route::post('/messages/{message}/replies', [MessageController::class, 'reply'])
+    ->middleware(['spam-ban', 'throttle:10,1'])
+    ->name('messages.reply');
+
+// ─── RUTE REAKSI EMOJI DI BALASAN (toggle, ala WhatsApp) ───
+// throttle: batasi 30 request/menit per IP biar jumlah reaksi gak bisa digoreng bebas.
+Route::post('/replies/{reply}/react', [MessageController::class, 'reactReply'])
+    ->middleware('throttle:30,1')
+    ->name('replies.react');
+
+// ─── RUTE LAPOR PESAN (konten tidak pantas) ───
+// throttle: batasi 10 laporan/menit per IP biar laporan palsu gak bisa digoreng bebas.
+Route::post('/messages/{message}/report', [MessageController::class, 'report'])
+    ->middleware('throttle:10,1')
+    ->name('messages.report');
+
 // ─── RUTE DASHBOARD BAWAAN BREEZE ───
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -69,7 +88,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
     Route::get('/spam', [AdminController::class, 'spam'])->name('spam');
+    Route::get('/audit', [AdminController::class, 'audit'])->name('audit');
+    Route::post('/audit/logins-read', [AdminController::class, 'markLoginsRead'])->name('audit.logins-read');
+    Route::delete('/audit/bans/{ban}', [AdminController::class, 'unban'])->name('audit.unban');
     Route::get('/hack', [AdminController::class, 'hackTraces'])->name('hack');
+    Route::get('/replies', [AdminController::class, 'replies'])->name('replies');
+    Route::delete('/replies/{reply}', [AdminController::class, 'destroyReply'])->name('replies.destroy');
+    Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+    Route::post('/reports/{report}/resolve', [AdminController::class, 'resolveReport'])->name('reports.resolve');
+    Route::post('/reports/{report}/ban-ip', [AdminController::class, 'banReportIp'])->name('reports.ban-ip');
+    Route::delete('/reports/{report}/delete-message', [AdminController::class, 'destroyReportedMessage'])->name('reports.delete-message');
+    Route::delete('/reports/{report}', [AdminController::class, 'destroyReport'])->name('reports.destroy');
     Route::post('/hack/read-all', [AdminController::class, 'markHackAttemptsRead'])->name('hack.read-all');
     Route::delete('/hack/{attempt}', [AdminController::class, 'destroyHackAttempt'])->name('hack.destroy');
     Route::post('/hack/clear', [AdminController::class, 'clearHackAttempts'])->name('hack.clear');
@@ -83,6 +112,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/export', [AdminController::class, 'export'])->name('export');
     Route::get('/export/messages.csv', [AdminController::class, 'exportMessagesCsv'])->name('export.messages');
     Route::get('/export/songs.csv', [AdminController::class, 'exportSongsCsv'])->name('export.songs');
+    Route::get('/export/audit.csv', [AdminController::class, 'exportAuditCsv'])->name('export.audit');
+    Route::get('/export/logins.csv', [AdminController::class, 'exportLoginsCsv'])->name('export.logins');
+    Route::get('/export/hack.csv', [AdminController::class, 'exportHackCsv'])->name('export.hack');
 });
 
 require __DIR__.'/auth.php';

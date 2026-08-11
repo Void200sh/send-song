@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Message;
+use App\Services\AuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +34,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Audit: login sukses + deteksi login mencurigakan (IP baru)
+        app(AuditService::class)->logLogin('success', (string) $request->string('email'), $request->user(), $request);
+        app(AuditService::class)->log('auth.login', 'user', $request->user()?->id, ['email' => (string) $request->string('email')], $request);
+
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 
@@ -41,6 +46,9 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Audit: logout (sebelum session dihancurkan, user masih tersedia)
+        app(AuditService::class)->log('auth.logout', 'user', $request->user()?->id, [], $request);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

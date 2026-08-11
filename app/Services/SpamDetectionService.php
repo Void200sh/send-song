@@ -111,8 +111,12 @@ class SpamDetectionService
     public function isBanned(string $senderName, string $ip): bool
     {
         return SpamBan::query()
-            ->where('sender_key', $this->normaliseSender($senderName))
             ->where('ip_address', $ip)
+            ->where(function ($q) use ($senderName): void {
+                // Ban per nama (spam otomatis) ATAU ban seluruh IP (manual dari laporan, sender_key '*').
+                $q->where('sender_key', $this->normaliseSender($senderName))
+                    ->orWhere('sender_key', '*');
+            })
             ->exists();
     }
 
