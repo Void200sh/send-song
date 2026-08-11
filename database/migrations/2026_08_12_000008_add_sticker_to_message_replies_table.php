@@ -15,7 +15,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('message_replies', function (Blueprint $table) {
-            $table->string('sticker_path')->nullable()->after('photo_path');
+            $table->string('sticker_path')->nullable();
         });
     }
 
