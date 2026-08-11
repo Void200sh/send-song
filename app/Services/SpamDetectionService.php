@@ -44,8 +44,9 @@ class SpamDetectionService
 
         return [
             'sender_key' => $senderKey,
-            'spam_identity_key' => hash('sha256', $senderKey . '|' . $ip),
+            'spam_identity_key' => hash('sha256', $senderKey.'|'.$ip),
             'ip_address' => $ip,
+            'user_agent' => Str::limit((string) $request->userAgent(), 300) ?: null,
             'spam_fingerprint' => $this->fingerprint($request->input('message')),
         ];
     }

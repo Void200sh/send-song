@@ -87,6 +87,7 @@
                                 <tr>
                                     <th>Dari &bull; Pengirim</th>
                                     <th>IP</th>
+                                    <th>Perangkat</th>
                                     <th>Untuk</th>
                                     <th>Kelas</th>
                                     <th>Isi Pesan</th>
@@ -106,6 +107,7 @@
                                             @endif
                                         </td>
                                         <td class="text-muted-foreground text-xs">{{ $msg->ip_address ?: '—' }}</td>
+                                        <td class="text-muted-foreground text-xs" title="{{ $msg->user_agent ?: '' }}">{{ $msg->device_label ?: '—' }}</td>
                                         <td class="font-medium">
                                             {{ $msg->recipient_name }}
                                             @if ($msg->is_pinned)

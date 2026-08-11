@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use DeviceDetector\DeviceDetector;
 // Model adalah representasi dari tabel database di Laravel (ORM Eloquent)
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
@@ -17,6 +18,7 @@ class Message extends Model
     protected $fillable = [
         'sender_name',      // string/null — nama pengirim (opsional, anonim kalo kosong)
         'ip_address',
+        'user_agent',       // string/null — UA browser/HP pengirim (diparsing di halaman admin)
         'sender_key',
         'spam_identity_key',
         'spam_fingerprint',
@@ -104,6 +106,41 @@ class Message extends Model
         }
 
         return sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
+
+    // ─── PERANGKAT PENGIRIM ───
+    // Parsing User-Agent mentah → label ramah manusia ("Samsung SM-A546B · Android 13"),
+    // dipakai di halaman admin. Return null kalau UA kosong / tak dikenal.
+    public function getDeviceLabelAttribute(): ?string
+    {
+        if (! $this->user_agent) {
+            return null;
+        }
+
+        $dd = new DeviceDetector($this->user_agent);
+        $dd->parse();
+
+        if ($dd->isBot()) {
+            return null;
+        }
+
+        $parts = [];
+        $brand = $dd->getBrandName();
+        $model = $dd->getModel();
+        if ($brand && $model) {
+            $parts[] = $brand.' '.$model;
+        } elseif ($brand) {
+            $parts[] = $brand;
+        } elseif ($dd->getDeviceName() !== 'unknown') {
+            $parts[] = ucfirst($dd->getDeviceName());
+        }
+
+        $os = $dd->getOs();
+        if ($os && ($os['name'] ?? null)) {
+            $parts[] = $os['name'].(isset($os['version']) ? ' '.$os['version'] : '');
+        }
+
+        return implode(' · ', $parts) ?: null;
     }
 
     // ─── SORTIR FEED: PESAN TER-PIN PALING ATAS ───
