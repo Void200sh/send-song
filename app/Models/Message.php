@@ -117,8 +117,14 @@ class Message extends Model
             return null;
         }
 
-        $dd = new DeviceDetector($this->user_agent);
-        $dd->parse();
+        try {
+            $dd = new DeviceDetector($this->user_agent);
+            $dd->parse();
+        } catch (\Throwable) {
+            // Parser tak tersedia (composer belum di-install di server) atau gagal
+            // parse UA aneh — jangan sampai halaman admin ikut error.
+            return $this->user_agent ?: null;
+        }
 
         if ($dd->isBot()) {
             return null;
