@@ -31,6 +31,11 @@ Route::get('/', function () {
 // ─── RUTE HALAMAN BROWSE / FEED PESAN ───
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
+// ─── RUTE INFINITE SCROLL (fragment AJAX halaman browse) ───
+// WAJIB didaftarkan SEBELUM /messages/{message} biar "load-more" tidak
+// tertangkap route show (implicit binding akan cari message id "load-more").
+Route::get('/messages/load-more', [MessageController::class, 'loadMore'])->name('messages.load-more');
+
 // ─── RUTE HALAMAN KIRIM STORY (TERPISAH DARI INDEX) ───
 Route::get('/story', function () {
     return view('story');
