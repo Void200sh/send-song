@@ -9,6 +9,7 @@ import './song-search.js';
 import { initStoryDownload } from './story-card.js';
 import { initCardShare, initDetailShare } from './share.js';
 import { initFeedbackModal } from './feedback.js';
+import { initInfiniteScroll } from './infinite-scroll.js';
 
 window.Alpine = Alpine;
 
@@ -18,3 +19,4 @@ initStoryDownload();
 initCardShare();
 initDetailShare();
 initFeedbackModal();
+initInfiniteScroll();

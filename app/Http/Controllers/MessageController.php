@@ -50,7 +50,8 @@ class MessageController extends Controller
             $query->where('kelas', $request->kelas);
         }
 
-        $messages = $query->pinnedFirst()->paginate(12);
+        // withQueryString(): biar nextPageUrl di data attribute ikut membawa ?search= &kelas=.
+        $messages = $query->pinnedFirst()->paginate(12)->withQueryString();
 
         // Kartu yang tampil di halaman ini langsung dihitung sebagai views
         // (total +1 per pesan, unik per IP lewat tabel message_views).
@@ -67,8 +68,65 @@ class MessageController extends Controller
 
         $selectedKelas = $request->kelas;
         $search = $request->search;
+        $nextUrl = $this->nextLoadUrl($messages, $request);
 
-        return view('messages.index', compact('messages', 'kelasList', 'selectedKelas', 'search', 'myReactions'));
+        return view('messages.index', compact('messages', 'kelasList', 'selectedKelas', 'search', 'myReactions', 'nextUrl'));
+    }
+
+    /**
+     * ─── METHOD LOAD MORE — FRAGMENT AJAX UNTUK INFINITE SCROLL ───
+     * Dipanggil pas user scroll ke bawah halaman browse (GET /messages/load-more).
+     * Query-nya identik dengan index() (spam/search/kelas + pinnedFirst), dan
+     * mengembalikan JSON: html (fragment kartu) + next_page_url + has_more.
+     */
+    public function loadMore(Request $request)
+    {
+        $query = Message::query()->where('is_spam', false);
+
+        if ($request->filled('search')) {
+            $query->where('recipient_name', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('kelas')) {
+            $query->where('kelas', $request->kelas);
+        }
+
+        $messages = $query->pinnedFirst()->paginate(12)->withQueryString();
+
+        $this->recordViews($messages, $request);
+
+        $messages->load('reactions');
+        $messages->loadCount('replies');
+        $myReactions = MessageReaction::where('ip_address', SpamDetectionService::clientIp($request))
+            ->whereIn('message_id', $messages->pluck('id'))
+            ->get()
+            ->groupBy('message_id')
+            ->map->pluck('emoji');
+
+        return response()->json([
+            'html' => view('messages.partials.cards', compact('messages', 'myReactions'))->render(),
+            'next_page_url' => $this->nextLoadUrl($messages, $request),
+            'has_more' => $messages->hasMorePages(),
+        ]);
+    }
+
+    /**
+     * ─── URL HALAMAN BERIKUTNYA UNTUK INFINITE SCROLL ───
+     * PENTING: tidak memakai $messages->nextPageUrl() karena itu menghasilkan
+     * /messages?page=N (route index yang balikin HTML penuh), padahal JS butuh
+     * fragment JSON dari /messages/load-more. Di sini URL dibangun manual:
+     * route load-more + semua query param aktif (search/kelas/dll) + page+1.
+     */
+    private function nextLoadUrl($messages, Request $request): ?string
+    {
+        if (! $messages->hasMorePages()) {
+            return null;
+        }
+
+        return route('messages.load-more', array_merge(
+            $request->query(),
+            ['page' => $messages->currentPage() + 1]
+        ));
     }
 
     /**

@@ -42,6 +42,7 @@ Route::get('/', function () {
 });
 
 
+<<<<<<< HEAD
 /*
 |--------------------------------------------------------------------------
 | STORAGE FILES
@@ -153,6 +154,14 @@ Route::get('/messages', [MessageController::class, 'index'])
 |--------------------------------------------------------------------------
 */
 
+=======
+// ─── RUTE INFINITE SCROLL (fragment AJAX halaman browse) ───
+// WAJIB didaftarkan SEBELUM /messages/{message} biar "load-more" tidak
+// tertangkap route show (implicit binding akan cari message id "load-more").
+Route::get('/messages/load-more', [MessageController::class, 'loadMore'])->name('messages.load-more');
+
+// ─── RUTE HALAMAN KIRIM STORY (TERPISAH DARI INDEX) ───
+>>>>>>> 227640f4d255251c0e6e880efd463aff170b2f3b
 Route::get('/story', function () {
     return view('story');
 })->name('story.create');
