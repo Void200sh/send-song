@@ -29,3 +29,9 @@ skanida_song
 # tesseract runtime data + debug artifacts
 eng.traineddata
 public/downloaded_story.png
+
+# php error log (sering ter-generate di root hosting)
+error_log
+
+# stray laravel dump artifact
+send-song

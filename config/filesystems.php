@@ -33,7 +33,12 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // serve=false: matikan route bawaan framework /storage/{path} (storage.local).
+            // Framework me-register route itu untuk disk PRIVATE (butuh signed URL → 404),
+            // dan karena RouteCollection berkunci URI+method, route tsb MENIMPA route
+            // /storage/{path} custom di routes/web.php yang melayani file PUBLIC
+            // (foto & stiker) tanpa signature. Route custom cukup untuk kebutuhan ini.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

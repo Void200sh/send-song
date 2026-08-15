@@ -28,6 +28,39 @@ Route::get('/', function () {
     ));
 });
 
+// ─── RUTE FILE STORAGE (fallback tanpa symlink) ───
+// Melayani file dari storage/app/public via PHP (misal foto & stiker):
+// /storage/photos/2026/08/xxx.jpg → storage/app/public/photos/2026/08/xxx.jpg.
+// Dipakai sebagai fallback kalau Apache/cPanel tidak bisa melayani symlink
+// public/storage. WAJIB ada guard path traversal (.., null byte) + verifikasi
+// file benar-benar di dalam storageRoot biar file di luar area tidak terbaca.
+Route::get('/storage/{path}', function (string $path) {
+    $path = ltrim($path, '/');
+
+    if (str_contains($path, '..') || str_contains($path, "\0")) {
+        abort(404);
+    }
+
+    $file = storage_path('app/public/' . $path);
+
+    $storageRoot = realpath(storage_path('app/public'));
+    $realFile = realpath($file);
+
+    if (
+        $storageRoot === false ||
+        $realFile === false ||
+        ! str_starts_with($realFile, $storageRoot . DIRECTORY_SEPARATOR)
+    ) {
+        abort(404);
+    }
+
+    if (! is_file($realFile) || ! is_readable($realFile)) {
+        abort(404);
+    }
+
+    return response()->file($realFile);
+})->where('path', '.*');
+
 // ─── RUTE HALAMAN BROWSE / FEED PESAN ───
 Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
