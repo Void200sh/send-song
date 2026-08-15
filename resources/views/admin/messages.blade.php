@@ -115,7 +115,17 @@
                                             @endif
                                         </td>
                                         <td>{{ $msg->kelas }}</td>
-                                        <td class="max-w-36">{!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}</td>
+                                        <td class="max-w-36">
+                                            {{-- Thumbnail foto tetap tampil untuk admin (moderasi) meski fitur foto dinonaktifkan publik.
+                                               Karena itu dipakai path asli, bukan $msg->photoUrl() yang memfilter setting. --}}
+                                            @if ($msg->photo_path)
+                                                <img src="{{ asset('storage/' . $msg->photo_path) }}"
+                                                    style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0"
+                                                    class="me-2 align-middle" alt="foto"
+                                                    title="Pesan punya foto kamera">
+                                            @endif
+                                            {!! \App\Support\EmojiText::small(\Illuminate\Support\Str::limit($msg->message, 40)) !!}
+                                        </td>
                                         <td>
                                             @php $hasSong = $msg->song_title || $msg->spotify_track_id || $msg->youtube_video_id; @endphp
                                             @if ($hasSong)

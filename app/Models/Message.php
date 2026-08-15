@@ -28,6 +28,7 @@ class Message extends Model
         'kelas',            // string — kelas penerima (ex: "XI PPLG 1")
         'message',          // text — isi pesan
         'theme',            // string/null — tema kartu (null = polos/classic)
+        'photo_path',       // string/null — path foto jepretan kamera (disk public)
         'spotify_track_id', // string/null — ID track Spotify hasil ekstraksi
         'song_title',       // string/null — judul lagu dari Spotify
         'song_artist',      // string/null — nama penyanyi
@@ -83,6 +84,20 @@ class Message extends Model
     public function reactionCounts(): array
     {
         return $this->reactions->countBy('emoji')->toArray();
+    }
+
+    // ─── URL FOTO KAMERA ───
+    // Path foto disimpan relatif ke disk "public" (storage/app/public),
+    // URL publiknya lewat /storage (symlink storage:link sudah terpasang).
+    // Return null saat fitur foto dinonaktifkan admin (Setting photos_enabled)
+    // → foto otomatis disembunyikan dari semua tampilan publik (card, detail).
+    public function photoUrl(): ?string
+    {
+        if (! \App\Support\Settings::photosEnabled()) {
+            return null;
+        }
+
+        return $this->photo_path ? asset('storage/' . $this->photo_path) : null;
     }
 
     // ─── TEMA KARTU ───

@@ -105,6 +105,56 @@
                         class="w-full px-4 py-3 rounded-xl border border-[#D9D9D9] text-gray-950 placeholder:text-gray-400 focus:border-gray-950 focus:ring-1 focus:ring-gray-200 outline-none transition-colors resize-none">{{ old('message') }}</textarea>
                 </div>
 
+                {{-- Foto kamera (opsional) — jepret langsung lewat kamera, tanpa upload file.
+                   Disembunyikan total saat admin menonaktifkan fitur foto (photos_enabled). --}}
+                @if (\App\Support\Settings::photosEnabled())
+                <div data-camera>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">foto <span class="text-gray-400 font-normal">(optional)</span></label>
+
+                    {{-- Hidden input — data URL JPEG hasil jepret (dikirim bareng form) --}}
+                    <input type="hidden" name="photo" id="cam-photo">
+
+                    {{-- Preview live kamera (streaming) --}}
+                    <div data-cam-live class="hidden relative rounded-xl overflow-hidden border border-[#D9D9D9] bg-gray-100">
+                        <video id="cam-video" playsinline muted class="w-full aspect-[4/3] object-cover"></video>
+                        {{-- Corner frame ala kamera --}}
+                        <span class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl"></span>
+                    </div>
+
+                    {{-- Hasil jepretan --}}
+                    <div data-cam-shot class="hidden relative rounded-xl overflow-hidden border border-[#D9D9D9] bg-gray-100">
+                        <img id="cam-shot-img" alt="foto hasil jepret" class="w-full aspect-[4/3] object-cover">
+                        <span class="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl"></span>
+                    </div>
+
+                    {{-- Tombol aksi --}}
+                    <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                        <button type="button" data-cam-open
+                            class="hidden px-4 py-2.5 rounded-xl bg-[#171717] hover:bg-gray-800 text-white text-sm font-medium transition-colors cursor-pointer">
+                            📷 buka kamera
+                        </button>
+                        <button type="button" data-cam-snap
+                            class="hidden px-4 py-2.5 rounded-xl bg-[#171717] hover:bg-gray-800 text-white text-sm font-medium transition-colors cursor-pointer">
+                            jepret
+                        </button>
+                        <button type="button" data-cam-cancel
+                            class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-gray-950 hover:border-[#171717] text-sm font-medium transition-colors cursor-pointer">
+                            batal
+                        </button>
+                        <button type="button" data-cam-retake
+                            class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-gray-950 hover:border-[#171717] text-sm font-medium transition-colors cursor-pointer">
+                            ulangi
+                        </button>
+                        <button type="button" data-cam-clear
+                            class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-red-600 hover:border-red-300 text-sm font-medium transition-colors cursor-pointer">
+                            hapus foto
+                        </button>
+                        {{-- Pesan status: izin ditolak / kamera tidak ada --}}
+                        <span data-cam-status class="text-xs text-gray-400"></span>
+                    </div>
+                </div>
+                @endif
+
                 {{-- Pilih Tema Kartu (opsional) — preview langsung gradasinya, ala tema chat TikTok --}}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">tema kartu <span class="text-gray-400 font-normal">(optional)</span></label>

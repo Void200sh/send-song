@@ -130,6 +130,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/export/hack.csv', [AdminController::class, 'exportHackCsv'])->name('export.hack');
     Route::post('/stickers', [AdminController::class, 'storeSticker'])->name('stickers.store');
     Route::delete('/stickers/{sticker}', [AdminController::class, 'destroySticker'])->name('stickers.destroy');
+    Route::post('/settings/photo-toggle', [AdminController::class, 'togglePhotoSetting'])->name('settings.photo-toggle');
 });
 
 require __DIR__.'/auth.php';
