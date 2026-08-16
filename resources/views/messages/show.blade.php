@@ -62,6 +62,16 @@
             {{-- Isi pesan lengkap (font Reenie Beanie, sama seperti from/to) --}}
             <p class="font-reenie text-[28px] leading-[100%] text-[#171717] mb-6">{!! \App\Support\EmojiText::small($message->message) !!}</p>
 
+            {{-- Foto jepretan kamera — tampil besar, di bawah isi pesan. Klik → lightbox. --}}
+            @if ($message->photoUrl())
+                <button type="button" data-photo-open data-photo-src="{{ $message->photoUrl() }}"
+                    aria-label="lihat foto"
+                    class="block w-full mb-6 rounded-xl overflow-hidden border border-black/5 bg-transparent cursor-zoom-in">
+                    <img src="{{ $message->photoUrl() }}" alt="foto"
+                        class="w-full max-h-[480px] object-cover">
+                </button>
+            @endif
+
             {{-- Blok lagu: judul & artis SELALU tampil kalau ada lagu. Player YouTube kalau ada id-nya, link Spotify kalau ada. --}}
             @if ($message->song_title || $message->youtube_video_id || $message->spotify_track_id)
                 @if ($message->youtube_video_id)

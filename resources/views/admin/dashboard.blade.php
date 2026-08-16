@@ -395,6 +395,52 @@
                 @endif
             </div>
         </div>
+
+        {{-- ─── PENGATURAN FITUR (khusus admin) ─── --}}
+        <div class="card">
+            <div class="card__header">
+                <div class="card__heading">
+                    <h2 class="card__title">
+                        Pengaturan Fitur 📸
+                        @if (\App\Support\Settings::photosEnabled())
+                            <span class="badge badge--success ms-2">Aktif</span>
+                        @else
+                            <span class="badge badge--soft ms-2">Nonaktif</span>
+                        @endif
+                    </h2>
+                    <p class="card__subtitle">Kendalikan fitur foto kamera di pesan publik.</p>
+                </div>
+            </div>
+            <div class="card__body">
+                @if (session('success'))
+                    <div class="alert alert--success">
+                        <div class="alert__title">Berhasil</div>
+                        <div class="alert__description">{{ session('success') }}</div>
+                    </div>
+                @endif
+
+                @if (\App\Support\Settings::photosEnabled())
+                    <div class="alert alert--info" style="margin-bottom: 1rem;">
+                        <div class="alert__title">Fitur foto aktif</div>
+                        <div class="alert__description">Foto jepretan kamera tampil di pesan dan menu kamera tersedia di form kirim pesan.</div>
+                    </div>
+                @else
+                    <div class="alert alert--danger" style="margin-bottom: 1rem;">
+                        <div class="alert__title">Fitur foto nonaktif</div>
+                        <div class="alert__description">Foto disembunyikan dari semua pesan publik dan menu kamera dihapus dari form kirim. Foto lama tetap tersimpan dan tetap terlihat di panel Pesan Masuk untuk moderasi.</div>
+                    </div>
+                @endif
+
+                <form action="{{ route('admin.settings.photo-toggle') }}" method="POST">
+                    @csrf
+                    @if (\App\Support\Settings::photosEnabled())
+                        <button type="submit" class="button button--danger">Nonaktifkan Fitur Foto</button>
+                    @else
+                        <button type="submit" class="button button--primary">Aktifkan Fitur Foto</button>
+                    @endif
+                </form>
+            </div>
+        </div>
     </section>
 @endsection
 

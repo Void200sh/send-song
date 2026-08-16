@@ -13,6 +13,7 @@ use App\Services\SpamDetectionService;
 use App\Services\YouTubeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class MessageController extends Controller
@@ -418,11 +419,18 @@ class MessageController extends Controller
             'clip_start_seconds' => 'nullable|integer|min:0|max:600',
             'clip_end_seconds' => 'nullable|integer|min:1|max:600',
             'duration_seconds' => 'nullable|integer|min:0|max:3600',
+            'photo' => 'nullable|string|max:400000',
         ]);
 
         if (isset($validated['sender_name']) && trim($validated['sender_name']) === '') {
             $validated['sender_name'] = null;
         }
+
+        // Foto kamera dikirim sebagai data URL JPEG base64 (bukan file upload).
+        // Opsional: data tidak valid / gagal diproses → diabaikan diam-diam,
+        // tidak memblokir pengiriman story.
+        $validated['photo_path'] = $this->storePhoto($validated['photo'] ?? null);
+        unset($validated['photo']);
 
         // Tema classic disimpan sebagai NULL agar konsisten dengan pesan lama.
         if (($validated['theme'] ?? null) === 'classic') {
@@ -543,5 +551,45 @@ class MessageController extends Controller
         preg_match('/spotify\.com\/track\/([a-zA-Z0-9]+)/', $url, $matches);
 
         return $matches[1] ?? null;
+    }
+
+    /**
+     * ─── SIMPAN FOTO KAMERA (data URL base64) KE DISK PUBLIC ───
+     * Input: "data:image/jpeg;base64,...." (hasil jepret canvas di client).
+     * Validasi isi gambar pakai getimagesizefromstring() (murni PHP, tanpa
+     * ekstensi GD) — kalau bukan gambar asli, return null (abaikan).
+     * Return path relatif "photos/YYYY/xxx.jpg" atau null.
+     */
+    private function storePhoto(?string $dataUrl): ?string
+    {
+        // Fitur foto dinonaktifkan admin → foto diabaikan (request palsu pun aman).
+        if (! \App\Support\Settings::photosEnabled()) {
+            return null;
+        }
+
+        if (! $dataUrl || ! preg_match('#^data:image/(jpeg|png|webp);base64,(.+)$#i', $dataUrl, $m)) {
+            return null;
+        }
+
+        $bytes = base64_decode($m[2], true);
+        if ($bytes === false || strlen($bytes) < 20) {
+            return null;
+        }
+
+        // getimagesize membaca header gambar — null untuk byte acak/bukan gambar.
+        $info = @getimagesizefromstring($bytes);
+        if ($info === false) {
+            return null;
+        }
+
+        $ext = match ($info[2]) {
+            IMAGETYPE_PNG => 'png',
+            IMAGETYPE_WEBP => 'webp',
+            default => 'jpg',
+        };
+
+        $path = 'photos/' . date('Y') . '/' . date('m') . '/' . uniqid('cam_', true) . '.' . $ext;
+
+        return Storage::disk('public')->put($path, $bytes) ? $path : null;
     }
 }

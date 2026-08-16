@@ -10,6 +10,8 @@ import { initStoryDownload } from './story-card.js';
 import { initCardShare, initDetailShare } from './share.js';
 import { initFeedbackModal } from './feedback.js';
 import { initInfiniteScroll } from './infinite-scroll.js';
+import { initCamera } from './camera.js';
+import './photo-lightbox.js';
 
 window.Alpine = Alpine;
 
@@ -20,3 +22,4 @@ initCardShare();
 initDetailShare();
 initFeedbackModal();
 initInfiniteScroll();
+initCamera();

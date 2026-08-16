@@ -231,6 +231,29 @@ class AdminController extends Controller
     }
 
     /**
+     * ─── TOGGLE FITUR FOTO KAMERA (khusus admin via dashboard) ───
+     * Aktif → semua foto tampil normal di pesan publik + menu kamera di form kirim.
+     * Nonaktif → foto disembunyikan dari pesan publik & menu kamera hilang
+     * (data & file foto lama tetap tersimpan; admin tetap bisa lihat di panel).
+     */
+    public function togglePhotoSetting()
+    {
+        $next = \App\Support\Settings::photosEnabled() ? '0' : '1';
+        \App\Support\Settings::set('photos_enabled', $next);
+
+        app(AuditService::class)->log('settings.photo-toggle', 'setting', null, [
+            'photos_enabled' => $next === '1',
+        ]);
+
+        return back()->with(
+            'success',
+            $next === '1'
+                ? 'Fitur foto diaktifkan — foto tampil kembali di pesan & menu kamera muncul.'
+                : 'Fitur foto dinonaktifkan — foto disembunyikan dari pesan & menu kamera dihapus.'
+        );
+    }
+
+    /**
      * ─── HALAMAN SEMUA PESAN ───
      * Tabel lengkap semua pesan: siapa yang kirim (sender_name / Anonim),
      * buat siapa, kelas, isi pesan, link lagu, dan waktu kirim.
@@ -606,6 +629,12 @@ class AdminController extends Controller
             'recipient' => $message->recipient_name,
             'kelas' => $message->kelas,
         ]);
+
+        // Foto kamera ikut dibersihkan dari disk biar tidak nyangkut.
+        if ($message->photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($message->photo_path);
+        }
+
         $message->delete();
 
         return redirect()->route('admin.messages')

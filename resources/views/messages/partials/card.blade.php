@@ -25,13 +25,42 @@
         class="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/85 border border-[#E9E9E9] text-gray-500 hover:text-gray-950 hover:border-[#171717] transition-colors cursor-pointer shadow-sm backdrop-blur">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
     </button>
-    {{-- Nama pengirim & penerima (font Reenie Beanie identik) --}}
-    <div class="mb-2">
+    {{-- Foto jepretan kamera — gaya foto cetakan scrapbook (frame kertas + washi tape).
+       Absolute + ukuran tetap → TIDAK menambah tinggi kartu. Klik → lightbox (photo-lightbox.js).
+       Rotasi & warna tape deterministik per message (crc32) biar HTML stabil antar render. --}}
+    @if ($msg->photoUrl())
+        @php
+            $photoRot = [-3, -2, 2, 3][crc32((string) $msg->id) % 4];
+            $tapeColor = ['#FDE68A', '#BFDBFE', '#FBCFE8', '#D9F99D', '#C4B5FD', '#A7F3D0'][crc32('tape' . $msg->id) % 6];
+            $tapeRot = [-8, -5, -3, 4, 7][crc32('tape-r' . $msg->id) % 5];
+            $decor = ['✦', '⭐', '🌸', '📎', '✿', '💫'][crc32('decor' . $msg->id) % 6];
+            $decorRot = [-12, -8, -4, 4, 10][crc32('decor-r' . $msg->id) % 5];
+        @endphp
+        <button type="button" data-photo-open data-photo-print data-photo-src="{{ $msg->photoUrl() }}"
+            title="lihat foto"
+            aria-label="lihat foto"
+            class="absolute top-16 right-16 z-10 transition-transform duration-200 hover:scale-[1.03] cursor-pointer bg-transparent border-0 p-0 m-0"
+            style="rotate: {{ $photoRot }}deg">
+            {{-- Washi tape / masking tape — ditempel di atas foto, pastel semi-transparan --}}
+            <span class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-11 h-3.5 opacity-75 rounded-[2px] shadow-[0_1px_3px_rgba(0,0,0,0.08)] pointer-events-none"
+                style="background:{{ $tapeColor }};rotate:{{ $tapeRot }}deg"></span>
+            {{-- Frame kertas off-white + foto --}}
+            <span class="block p-1.5 bg-gradient-to-br from-white to-[#F5F1E8] rounded-[6px] ring-1 ring-black/5 shadow-[0_3px_10px_rgba(0,0,0,0.10)]">
+                <img src="{{ $msg->photoUrl() }}" alt="foto" loading="lazy"
+                    class="w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] lg:w-16 lg:h-16 object-cover rounded-[3px]">
+            </span>
+            {{-- Dekorasi scrapbook kecil (1 saja) — pojok kiri-bawah foto --}}
+            <span class="absolute -bottom-2.5 -left-2 text-[13px] leading-none opacity-50 select-none pointer-events-none"
+                style="rotate:{{ $decorRot }}deg" aria-hidden="true">{{ $decor }}</span>
+        </button>
+    @endif
+    {{-- Nama pengirim & penerima (font Reenie Beanie identik) — pr biar teks gak ketutup thumbnail --}}
+    <div class="mb-2 @if($msg->photoUrl()) pr-32 @endif">
         <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">from: {!! \App\Support\EmojiText::small($msg->sender_name ?: 'anonymous') !!}</p>
         <p class="font-reenie text-[28px] sm:text-[32px] leading-[100%] text-[#171717]">to: {!! \App\Support\EmojiText::small($msg->recipient_name) !!}</p>
     </div>
     {{-- Kelas + waktu + views + balasan (relatif, ex: "XI PPLG 1 • 2 hours ago • 👁 12 • 💬 3") --}}
-    <div class="text-xs text-gray-500 mb-3 flex items-center gap-2">
+    <div class="text-xs text-gray-500 mb-3 flex items-center gap-2 @if($msg->photoUrl()) pr-20 @endif">
         <span>{{ $msg->kelas }} &bull; {{ $msg->created_at->diffForHumans() }}</span>
         <span class="inline-flex items-center gap-0.5">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>

@@ -15,20 +15,16 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    // Total pesan yang bukan spam
     $totalMessages = Message::where('is_spam', false)->count();
 
-    // Total kelas unik
     $totalKelas = Message::where('is_spam', false)
         ->distinct('kelas')
         ->count('kelas');
 
-    // Pesan terbaru
     $latestMessage = Message::where('is_spam', false)
         ->latest()
         ->first();
 
-    // 20 pesan acak untuk marquee
     $marqueeMessages = Message::where('is_spam', false)
         ->inRandomOrder()
         ->limit(20)
@@ -48,40 +44,16 @@ Route::get('/', function () {
 | STORAGE FILES
 |--------------------------------------------------------------------------
 |
-| Menampilkan file dari:
+| Fallback untuk file di storage/app/public jika symlink
+| public/storage tidak dilayani Apache/cPanel.
 |
-| storage/app/public/
-|
-| Contoh URL:
-|
-| /storage/stickers/contoh.jpg
-|
-| File sebenarnya:
-|
-| storage/app/public/stickers/contoh.jpg
-|
-| Route ini digunakan sebagai fallback jika Apache/cPanel
-| tidak dapat melayani symlink public/storage secara langsung.
-|
-|--------------------------------------------------------------------------
 */
 
 Route::get('/storage/{path}', function (string $path) {
 
-    // Hilangkan slash di awal
     $path = ltrim($path, '/');
 
-    /*
-    |--------------------------------------------------------------------------
-    | SECURITY
-    |--------------------------------------------------------------------------
-    |
-    | Mencegah path traversal seperti:
-    |
-    | /storage/../../.env
-    |
-    */
-
+    // Mencegah path traversal
     if (
         str_contains($path, '..') ||
         str_contains($path, "\0")
@@ -89,23 +61,12 @@ Route::get('/storage/{path}', function (string $path) {
         abort(404);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Tentukan lokasi file
-    |--------------------------------------------------------------------------
-    */
-
     $file = storage_path('app/public/' . $path);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Pastikan file benar-benar berada di storage/app/public
-    |--------------------------------------------------------------------------
-    */
 
     $storageRoot = realpath(storage_path('app/public'));
     $realFile = realpath($file);
 
+    // Pastikan file berada di dalam storage/app/public
     if (
         $storageRoot === false ||
         $realFile === false ||
@@ -117,21 +78,10 @@ Route::get('/storage/{path}', function (string $path) {
         abort(404);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Pastikan file ada dan bisa dibaca
-    |--------------------------------------------------------------------------
-    */
-
+    // Pastikan file tersedia dan dapat dibaca
     if (!is_file($realFile) || !is_readable($realFile)) {
         abort(404);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Kirim file
-    |--------------------------------------------------------------------------
-    */
 
     return response()->file($realFile);
 
@@ -140,31 +90,23 @@ Route::get('/storage/{path}', function (string $path) {
 
 /*
 |--------------------------------------------------------------------------
-| RUTE HALAMAN BROWSE / FEED PESAN
+| MESSAGES
 |--------------------------------------------------------------------------
 */
 
+// Halaman browse / feed pesan
 Route::get('/messages', [MessageController::class, 'index'])
     ->name('messages.index');
 
-
-/*
-|--------------------------------------------------------------------------
-| RUTE INFINITE SCROLL
-|--------------------------------------------------------------------------
-|
-| WAJIB didaftarkan SEBELUM /messages/{message} agar
-| "load-more" tidak tertangkap sebagai ID message.
-|
-*/
-
+// Infinite scroll / AJAX load more
+// Harus diletakkan sebelum /messages/{message}
 Route::get('/messages/load-more', [MessageController::class, 'loadMore'])
     ->name('messages.load-more');
 
 
 /*
 |--------------------------------------------------------------------------
-| RUTE HALAMAN KIRIM STORY
+| STORY
 |--------------------------------------------------------------------------
 */
 
@@ -175,7 +117,7 @@ Route::get('/story', function () {
 
 /*
 |--------------------------------------------------------------------------
-| RUTE DETAIL PESAN
+| DETAIL PESAN
 |--------------------------------------------------------------------------
 */
 
@@ -185,7 +127,7 @@ Route::get('/messages/{message}', [MessageController::class, 'show'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE KIRIM PESAN BARU
+| KIRIM PESAN
 |--------------------------------------------------------------------------
 */
 
@@ -196,7 +138,7 @@ Route::post('/messages', [MessageController::class, 'store'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE REAKSI PESAN
+| REAKSI PESAN
 |--------------------------------------------------------------------------
 */
 
@@ -207,7 +149,7 @@ Route::post('/messages/{message}/react', [MessageController::class, 'react'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE KIRIM BALASAN
+| BALASAN PESAN
 |--------------------------------------------------------------------------
 */
 
@@ -221,7 +163,7 @@ Route::post('/messages/{message}/replies', [MessageController::class, 'reply'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE REAKSI BALASAN
+| REAKSI BALASAN
 |--------------------------------------------------------------------------
 */
 
@@ -232,7 +174,7 @@ Route::post('/replies/{reply}/react', [MessageController::class, 'reactReply'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE LAPOR PESAN
+| LAPOR PESAN
 |--------------------------------------------------------------------------
 */
 
@@ -243,7 +185,7 @@ Route::post('/messages/{message}/report', [MessageController::class, 'report'])
 
 /*
 |--------------------------------------------------------------------------
-| RUTE SIMPAN FEEDBACK
+| FEEDBACK
 |--------------------------------------------------------------------------
 */
 
@@ -254,7 +196,7 @@ Route::post('/feedback', [MessageController::class, 'feedback'])
 
 /*
 |--------------------------------------------------------------------------
-| DASHBOARD BREEZE
+| DASHBOARD
 |--------------------------------------------------------------------------
 */
 
@@ -363,7 +305,7 @@ Route::middleware(['auth'])
         Route::delete(
             '/audit/bans/{ban}',
             [AdminController::class, 'unban']
-        )->name('admin.unban');
+        )->name('unban');
 
 
         /*
@@ -477,8 +419,10 @@ Route::middleware(['auth'])
         |--------------------------------------------------------------------------
         */
 
-        Route::post('/stickers', [AdminController::class, 'storeSticker'])
-            ->name('stickers.store');
+        Route::post(
+            '/stickers',
+            [AdminController::class, 'storeSticker']
+        )->name('stickers.store');
 
         Route::delete(
             '/stickers/{sticker}',
