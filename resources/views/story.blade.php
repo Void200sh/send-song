@@ -141,6 +141,10 @@
                             class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-gray-950 hover:border-[#171717] text-sm font-medium transition-colors cursor-pointer">
                             🔄 balik kamera
                         </button>
+                        <button type="button" data-cam-mirror
+                            class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-gray-950 hover:border-[#171717] text-sm font-medium transition-colors cursor-pointer">
+                            ⇋ mirror
+                        </button>
                         <button type="button" data-cam-cancel
                             class="hidden px-4 py-2.5 rounded-xl border border-[#D9D9D9] text-gray-600 hover:text-gray-950 hover:border-[#171717] text-sm font-medium transition-colors cursor-pointer">
                             batal

@@ -10,6 +10,7 @@ const JPEG_QUALITY = 0.72;
 let stream = null;
 let facingMode = 'environment';   // kamera belakang default; 'user' = kamera depan
 let canFlip = false;              // tombol balik kamera hanya relevan kalau ada >1 kamera
+let mirrored = false;             // preview & hasil jepret dipantulkan horizontal (kiri↔kanan)
 
 function stopStream() {
     if (!stream) return;
@@ -32,6 +33,7 @@ export function initCamera() {
     const btnRetake = wrap.querySelector('[data-cam-retake]');
     const btnClear = wrap.querySelector('[data-cam-clear]');
     const btnFlip = wrap.querySelector('[data-cam-flip]');
+    const btnMirror = wrap.querySelector('[data-cam-mirror]');
     const status = wrap.querySelector('[data-cam-status]');
 
     // Semua elemen yang butuh JS mulai hidden; tanpa JS tidak ada yang muncul.
@@ -61,6 +63,7 @@ export function initCamera() {
         btnRetake.classList.add('hidden');
         btnClear.classList.add('hidden');
         btnFlip.classList.toggle('hidden', !canFlip);
+        btnMirror.classList.remove('hidden');
     }
 
     function showShot() {
@@ -73,6 +76,7 @@ export function initCamera() {
         btnRetake.classList.remove('hidden');
         btnClear.classList.remove('hidden');
         btnFlip.classList.add('hidden');
+        btnMirror.classList.add('hidden');
     }
 
     function resetIdle() {
@@ -86,6 +90,7 @@ export function initCamera() {
         btnRetake.classList.add('hidden');
         btnClear.classList.add('hidden');
         btnFlip.classList.add('hidden');
+        btnMirror.classList.add('hidden');
     }
 
     // Batalkan kamera: tutup preview tanpa mengambil foto, kembali ke awal.
@@ -141,7 +146,13 @@ export function initCamera() {
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
-        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+        const ctx = canvas.getContext('2d');
+        if (mirrored) {
+            // WYSIWYG: hasil jepret sama persis dengan preview yang dipantulkan.
+            ctx.translate(w, 0);
+            ctx.scale(-1, 1);
+        }
+        ctx.drawImage(video, 0, 0, w, h);
 
         hidden.value = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
         shotImg.src = hidden.value;
@@ -167,6 +178,12 @@ export function initCamera() {
         facingMode = facingMode === 'environment' ? 'user' : 'environment';
         setStatus('');
         await openCamera();
+    });
+
+    // Mirror horizontal (kiri↔kanan): pantulkan preview video; jepretan ikut terbalik (WYSIWYG).
+    btnMirror.addEventListener('click', () => {
+        mirrored = !mirrored;
+        video.style.transform = mirrored ? 'scaleX(-1)' : '';
     });
 
     // Matikan stream saat form disubmit & halaman ditinggalkan (hemat baterai/mic).
