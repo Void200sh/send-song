@@ -305,7 +305,7 @@ Route::middleware(['auth'])
         Route::delete(
             '/audit/bans/{ban}',
             [AdminController::class, 'unban']
-        )->name('unban');
+        )->name('audit.unban');
 
 
         /*
@@ -401,6 +401,18 @@ Route::middleware(['auth'])
 
         Route::get('/songs', [AdminController::class, 'songs'])
             ->name('songs');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Settings
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/settings/photo-toggle',
+            [AdminController::class, 'togglePhotoSetting']
+        )->name('settings.photo-toggle');
 
 
         /*
