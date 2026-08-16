@@ -23,3 +23,13 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# ─── IZIN KAMERA (fitur foto) ───
+# Hosting (LiteSpeed/Cloudflare) mengirim "permissions-policy: camera=(), ..."
+# yang MEMBLOKIR kamera tanpa prompt sama sekali di browser. Override di sini
+# agar kamera diizinkan untuk halaman sendiri (camera=(self)); microphone &
+# geolocation tetap diblokir karena tidak dipakai aplikasi.
+<IfModule mod_headers.c>
+    Header always unset Permissions-Policy
+    Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+</IfModule>

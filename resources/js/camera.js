@@ -99,7 +99,10 @@ export function initCamera() {
         } catch (err) {
             stopStream();
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                setStatus('izin kamera ditolak — foto opsional, lanjut tanpa foto.');
+                // Bisa karena: user menolak prompt, izin tersimpan "block", halaman
+                // bukan HTTPS, ATAU hosting mengirim header permissions-policy yang
+                // memblokir kamera (camera=()) — kasus umum di shared hosting.
+                setStatus('izin kamera ditolak — cek izin kamera browser & pastikan situs diakses via https. foto opsional, lanjut tanpa foto.');
             } else if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') {
                 setStatus('kamera tidak ditemukan — foto opsional, lanjut tanpa foto.');
             } else {
