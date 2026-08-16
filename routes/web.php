@@ -7,6 +7,7 @@ use App\Http\Controllers\SongController;
 use App\Models\Message;
 use Illuminate\Support\Facades\Route;
 
+
 /*
 |--------------------------------------------------------------------------
 | RUTE HALAMAN UTAMA (LANDING PAGE)
@@ -42,7 +43,6 @@ Route::get('/', function () {
 });
 
 
-<<<<<<< HEAD
 /*
 |--------------------------------------------------------------------------
 | STORAGE FILES
@@ -150,18 +150,24 @@ Route::get('/messages', [MessageController::class, 'index'])
 
 /*
 |--------------------------------------------------------------------------
+| RUTE INFINITE SCROLL
+|--------------------------------------------------------------------------
+|
+| WAJIB didaftarkan SEBELUM /messages/{message} agar
+| "load-more" tidak tertangkap sebagai ID message.
+|
+*/
+
+Route::get('/messages/load-more', [MessageController::class, 'loadMore'])
+    ->name('messages.load-more');
+
+
+/*
+|--------------------------------------------------------------------------
 | RUTE HALAMAN KIRIM STORY
 |--------------------------------------------------------------------------
 */
 
-=======
-// ─── RUTE INFINITE SCROLL (fragment AJAX halaman browse) ───
-// WAJIB didaftarkan SEBELUM /messages/{message} biar "load-more" tidak
-// tertangkap route show (implicit binding akan cari message id "load-more").
-Route::get('/messages/load-more', [MessageController::class, 'loadMore'])->name('messages.load-more');
-
-// ─── RUTE HALAMAN KIRIM STORY (TERPISAH DARI INDEX) ───
->>>>>>> 227640f4d255251c0e6e880efd463aff170b2f3b
 Route::get('/story', function () {
     return view('story');
 })->name('story.create');
@@ -357,7 +363,7 @@ Route::middleware(['auth'])
         Route::delete(
             '/audit/bans/{ban}',
             [AdminController::class, 'unban']
-        )->name('audit.unban');
+        )->name('admin.unban');
 
 
         /*
