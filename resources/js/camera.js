@@ -8,6 +8,8 @@ const MAX_EDGE = 900;   // sisi terpanjang canvas (biar base64 kecil, aman di po
 const JPEG_QUALITY = 0.72;
 
 let stream = null;
+let facingMode = 'environment';   // kamera belakang default; 'user' = kamera depan
+let canFlip = false;              // tombol balik kamera hanya relevan kalau ada >1 kamera
 
 function stopStream() {
     if (!stream) return;
@@ -29,12 +31,26 @@ export function initCamera() {
     const btnCancel = wrap.querySelector('[data-cam-cancel]');
     const btnRetake = wrap.querySelector('[data-cam-retake]');
     const btnClear = wrap.querySelector('[data-cam-clear]');
+    const btnFlip = wrap.querySelector('[data-cam-flip]');
     const status = wrap.querySelector('[data-cam-status]');
 
     // Semua elemen yang butuh JS mulai hidden; tanpa JS tidak ada yang muncul.
     btnOpen.classList.remove('hidden');
 
     const setStatus = (text) => { status.textContent = text || ''; };
+
+    // Tombol balik kamera hanya berguna kalau perangkat punya >1 kamera (HP).
+    // Enumerate berjalan tanpa izin; di desktop (1 webcam) tombol disembunyikan.
+    if (navigator.mediaDevices?.enumerateDevices) {
+        navigator.mediaDevices.enumerateDevices()
+            .then((devices) => {
+                canFlip = devices.filter((d) => d.kind === 'videoinput').length >= 2;
+                if (!live.classList.contains('hidden')) {
+                    btnFlip.classList.toggle('hidden', !canFlip);
+                }
+            })
+            .catch(() => { canFlip = false; });
+    }
 
     function showLive() {
         live.classList.remove('hidden');
@@ -44,6 +60,7 @@ export function initCamera() {
         btnCancel.classList.remove('hidden');
         btnRetake.classList.add('hidden');
         btnClear.classList.add('hidden');
+        btnFlip.classList.toggle('hidden', !canFlip);
     }
 
     function showShot() {
@@ -55,6 +72,7 @@ export function initCamera() {
         btnCancel.classList.add('hidden');
         btnRetake.classList.remove('hidden');
         btnClear.classList.remove('hidden');
+        btnFlip.classList.add('hidden');
     }
 
     function resetIdle() {
@@ -67,6 +85,7 @@ export function initCamera() {
         btnCancel.classList.add('hidden');
         btnRetake.classList.add('hidden');
         btnClear.classList.add('hidden');
+        btnFlip.classList.add('hidden');
     }
 
     // Batalkan kamera: tutup preview tanpa mengambil foto, kembali ke awal.
@@ -88,7 +107,7 @@ export function initCamera() {
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: false,
                 video: {
-                    facingMode: 'environment',
+                    facingMode: facingMode,
                     width: { ideal: 1280 },
                     height: { ideal: 960 },
                 },
@@ -139,6 +158,16 @@ export function initCamera() {
         openCamera();
     });
     btnClear.addEventListener('click', cancelCamera);
+
+    // Balik kamera depan/belakang: matikan stream lama, ganti facingMode, buka lagi.
+    btnFlip.addEventListener('click', async () => {
+        if (!canFlip) return;
+        stopStream();
+        video.srcObject = null;
+        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+        setStatus('');
+        await openCamera();
+    });
 
     // Matikan stream saat form disubmit & halaman ditinggalkan (hemat baterai/mic).
     const form = document.getElementById('story-form');
