@@ -9,7 +9,6 @@ const JPEG_QUALITY = 0.72;
 
 let stream = null;
 let facingMode = 'environment';   // kamera belakang default; 'user' = kamera depan
-let canFlip = false;              // tombol balik kamera hanya relevan kalau ada >1 kamera
 let mirrored = false;             // preview & hasil jepret dipantulkan horizontal (kiri↔kanan)
 
 function stopStream() {
@@ -41,19 +40,6 @@ export function initCamera() {
 
     const setStatus = (text) => { status.textContent = text || ''; };
 
-    // Tombol balik kamera hanya berguna kalau perangkat punya >1 kamera (HP).
-    // Enumerate berjalan tanpa izin; di desktop (1 webcam) tombol disembunyikan.
-    if (navigator.mediaDevices?.enumerateDevices) {
-        navigator.mediaDevices.enumerateDevices()
-            .then((devices) => {
-                canFlip = devices.filter((d) => d.kind === 'videoinput').length >= 2;
-                if (!live.classList.contains('hidden')) {
-                    btnFlip.classList.toggle('hidden', !canFlip);
-                }
-            })
-            .catch(() => { canFlip = false; });
-    }
-
     function showLive() {
         live.classList.remove('hidden');
         shot.classList.add('hidden');
@@ -62,7 +48,7 @@ export function initCamera() {
         btnCancel.classList.remove('hidden');
         btnRetake.classList.add('hidden');
         btnClear.classList.add('hidden');
-        btnFlip.classList.toggle('hidden', !canFlip);
+        btnFlip.classList.remove('hidden');
         btnMirror.classList.remove('hidden');
     }
 
@@ -172,7 +158,6 @@ export function initCamera() {
 
     // Balik kamera depan/belakang: matikan stream lama, ganti facingMode, buka lagi.
     btnFlip.addEventListener('click', async () => {
-        if (!canFlip) return;
         stopStream();
         video.srcObject = null;
         facingMode = facingMode === 'environment' ? 'user' : 'environment';
